@@ -11,15 +11,14 @@ import (
 
 type APIServer struct {
 	listenAddr string
-	store Storage
+	store      Storage
 }
-
 
 // Constructor function for APIServer
 func NewAPIServer(listenAddr string, store Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
-		store: store,
+		store:      store,
 	}
 }
 
@@ -27,8 +26,7 @@ func NewAPIServer(listenAddr string, store Storage) *APIServer {
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account/", makeHTTPHandleFunc(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleAccount))
-
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountByID))
 
 	log.Println("Json API server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
@@ -38,19 +36,39 @@ func (s *APIServer) Run() {
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
 		return s.handleGetAccount(w, r)
+	} else if r.Method == "POST" {
+		return s.handleCreateAccount(w, r)
 	}
 	return fmt.Errorf("method is not allowed %s", r.Method)
 }
 
-func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)["id"]
 	fmt.Println(vars)
 	account := NewAccount("Jova", "Nurov")
 	return WriteJSON(w, http.StatusOK, account)
 }
 
+// Get /account
+func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, accounts)
+}
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createAccountRequest := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
+		return err
+	}
+
+	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
@@ -60,7 +78,6 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransferAccount(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
@@ -81,5 +98,3 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 		}
 	}
 }
-
-
