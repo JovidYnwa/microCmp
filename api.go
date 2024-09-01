@@ -39,22 +39,29 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 		return s.handleGetAccount(w, r)
 	} else if r.Method == "POST" {
 		return s.handleCreateAccount(w, r)
-	}
+	} 
 	return fmt.Errorf("method is not allowed %s", r.Method)
 }
 
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return fmt.Errorf("invalid id given %s", idStr)
-	}
+	if r.Method == "GET"{
+		idStr := mux.Vars(r)["id"]
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			return fmt.Errorf("invalid id given %s", idStr)
+		}
 
-	account, err := s.store.GetAccountByID(id)
-	if err != nil {
-		return err
+		account, err := s.store.GetAccountByID(id)
+		if err != nil {
+			return err
+		}
+		return WriteJSON(w, http.StatusOK, account)
 	}
-	return WriteJSON(w, http.StatusOK, account)
+	
+	if r.Method == "DELETE" {
+		return s.handleDeleteAccount(w,r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
 // Get /account
@@ -80,7 +87,15 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return fmt.Errorf("invalid id given %s", idStr)
+	}
+	if err := s.store.DeleteAccount(id); err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
 
 func (s *APIServer) handleTransferAccount(w http.ResponseWriter, r *http.Request) error {
