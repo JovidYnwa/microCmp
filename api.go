@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 )
 
@@ -27,9 +28,8 @@ func NewAPIServer(listenAddr string, store Storage) *APIServer {
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account/", makeHTTPHandleFunc(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccountByID))
+	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID)))
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
-
 
 	log.Println("Json API server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
@@ -41,12 +41,39 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 		return s.handleGetAccount(w, r)
 	} else if r.Method == "POST" {
 		return s.handleCreateAccount(w, r)
-	} 
+	}
 	return fmt.Errorf("method is not allowed %s", r.Method)
 }
 
+func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("calling JWT auth middleware")
+		handlerFunc(w, r)
+	}
+}
+
+const jwtSecret = "forTest"
+
+type MyCustomClaims struct {
+	Foo string `json:"foo"`
+	jwt.RegisteredClaims
+}
+
+func validateJWT(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(jwtSecret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := token.Claims.(*MyCustomClaims); ok && token.Valid {
+		return token, nil
+	} 
+	return nil, fmt.Errorf("invalid token or claims") // Return an error if the claims are invalid
+}
+
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
-	if r.Method == "GET"{
+	if r.Method == "GET" {
 		idStr := mux.Vars(r)["id"]
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -59,9 +86,9 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 		}
 		return WriteJSON(w, http.StatusOK, account)
 	}
-	
+
 	if r.Method == "DELETE" {
-		return s.handleDeleteAccount(w,r)
+		return s.handleDeleteAccount(w, r)
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
