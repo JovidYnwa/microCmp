@@ -27,12 +27,17 @@ func NewAPIServer(listenAddr string, store Storage) *APIServer {
 // Run method to start the server
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
-	router.HandleFunc("/account/", makeHTTPHandleFunc(s.handleAccount))
+	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID)))
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
+	router.HandleFunc("/test", handleTestFunc)
 
 	log.Println("Json API server running on port: ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
+}
+
+func handleTestFunc(w http.ResponseWriter, r *http.Request) {
+	WriteJSON(w, 200, "yo")
 }
 
 // Handler methods (all returning error)
@@ -48,28 +53,27 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("calling JWT auth middleware")
+		tokenString := r.Header.Get("x-jwt-token")
+		_, err := validateJWT(tokenString)
+		if err != nil {
+			WriteJSON(w, http.StatusForbidden, ApiError{Error: "Invalid token"}) //11:20
+			return
+		}
 		handlerFunc(w, r)
 	}
 }
 
-const jwtSecret = "forTest"
-
-type MyCustomClaims struct {
-	Foo string `json:"foo"`
-	jwt.RegisteredClaims
-}
-
 func validateJWT(tokenString string) (*jwt.Token, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	const jwtSecret = "forTest"
+
+	
+	return jwt.ParseWithClaims(tokenString, nil, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unxpected singign method: %v", token.Header["alg"])
+		}
 		return []byte(jwtSecret), nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	if _, ok := token.Claims.(*MyCustomClaims); ok && token.Valid {
-		return token, nil
-	} 
-	return nil, fmt.Errorf("invalid token or claims") // Return an error if the claims are invalid
+
 }
 
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
@@ -144,14 +148,14 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
-type APIError struct {
+type ApiError struct {
 	Error string `json:"error"`
 }
 
 func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, APIError{Error: err.Error()})
+			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}
 }
