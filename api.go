@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
@@ -63,10 +64,10 @@ func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func validateJWT(tokenString string) (*jwt.Token, error) {
-	const jwtSecret = "forTest"
+const jwtSecret = "forTest"
 
-	
+func validateJWT(tokenString string) (*jwt.Token, error) {
+
 	return jwt.ParseWithClaims(tokenString, nil, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unxpected singign method: %v", token.Header["alg"])
@@ -115,6 +116,11 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
+	token, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+	fmt.Println("jwt token= ", token)
 
 	return WriteJSON(w, http.StatusOK, account)
 }
@@ -144,6 +150,19 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
+}
+
+func createJWT(account *Account) (string, error) {
+	// Create the Claims
+	claims := &jwt.MapClaims{
+		"ExpiresAt": jwt.NewNumericDate(time.Unix(1516239022, 0)),
+		"Issuer":    "test",
+		"AccountNumber": account.Number,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(jwtSecret))
+
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
