@@ -1,8 +1,8 @@
 build:
-	@go build - o bin/gomicro
+	@go build -o bin/microCmp
 
 run : build
-	@./bin/gomicro
+	@./bin/microCmp
 
 test:
 	@go test -v ./...
