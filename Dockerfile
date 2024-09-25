@@ -21,7 +21,7 @@ COPY . .
 RUN go build -o main .
 
 # Expose the port specified by the PORT environment variable
-EXPOSE 3000
+EXPOSE 3001
 
 # Set the entry point of the container to the executable
 CMD ["./main"]

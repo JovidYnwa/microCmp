@@ -1,17 +1,16 @@
-version: '3'
 services:
   web:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       - db
   db:
     image: postgres
     environment:
-      POSTGRES_USER: ${MyTcell_DB_USER}
-      POSTGRES_PASSWORD: ${MyTcell_DB_PASSWORD}
-      POSTGRES_DB: ${MyTcell_DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
