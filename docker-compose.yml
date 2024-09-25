@@ -5,9 +5,6 @@ services:
       - "3001:3001"
     depends_on:
       - db
-    environment:
-      - HTTP_PROXY=http://10.84.142.62:3128/
-      - HTTPS_PROXY=http://10.84.142.62:3128/
   db:
     image: postgres
     environment:
