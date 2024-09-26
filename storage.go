@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/JovidYnwa/microCmp/types"
 	_ "github.com/lib/pq"
 )
 
@@ -14,6 +15,7 @@ type Storage interface {
 	UpdateAccount(*Account) error
 	GetAccounts() ([]*Account, error)
 	GetAccountByID(int) (*Account, error)
+	GetCompanies() ([]*types.Company, error)
 }
 
 type PostgresStore struct {
@@ -21,7 +23,7 @@ type PostgresStore struct {
 }
 
 func NewPostgresStore() (*PostgresStore, error) {
-connStr := "user=postgres dbname=postgres password=test host=db sslmode=disable port=5432"
+	connStr := "user=postgres dbname=postgres password=test host=db sslmode=disable port=5432"
 	db, err := sql.Open("postgres", connStr)
 
 	if err != nil {
@@ -129,4 +131,29 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 		return nil, err
 	}
 	return account, err
+}
+
+func (s *PostgresStore) GetCompanies() ([]*types.Company, error) {
+	query := `select * from company`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	companies := []*types.Company{}
+	for rows.Next() {
+		cmp := new(types.Company)
+		err := rows.Scan(
+			&cmp.CmpID,
+			&cmp.Name,
+			&cmp.CmpLunced,
+			&cmp.SubscriberCount,
+			&cmp.Efficincy,
+		)
+		if err != nil {
+			return nil, err
+		}
+		companies = append(companies, cmp)
+	}
+	return companies, nil
 }
