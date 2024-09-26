@@ -1,10 +1,22 @@
+version: '3.8'
+
 services:
   web:
     build: .
+    volumes:
+      # - .:/app
+      - go-modules:/go/pkg/mod
+    working_dir: /app
     ports:
       - "3001:3001"
     depends_on:
       - db
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+    command: ./main  # This will run the built executable
+
   db:
     image: postgres
     environment:
@@ -19,4 +31,5 @@ services:
       - .env
 
 volumes:
+  go-modules:
   postgres_data:

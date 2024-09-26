@@ -2,48 +2,45 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
-)
+	"os"
 
-// should get from env
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "test"
-	dbname   = "postgres"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	seed := flag.Bool("seed", false, "seed the database")
-	flag.Parse()
+	// Get database connection details from environment variables
+	dbType := os.Getenv("DB_TYPE")
+	dbName := os.Getenv("DB_NAME")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
 
-	//Connect to the database
-	cnnstr := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	// Construct the connection string
+	connStr := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable",
+		dbType, dbUser, dbPassword, dbHost, dbPort, dbName)
 
-	db, err := sql.Open("postgres", cnnstr)
+	// Connect to the database
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
+	// Test the connection
 	err = db.Ping()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to ping database: %v", err)
 	}
-	fmt.Println("connected to the db!")
 
-	if *seed {
-		err = seedDB(db)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("db seeded successfully")
+	fmt.Println("Successfully connected to the database!")
+
+	if err := seedDB(db); err != nil {
+		log.Fatalf("Failed to seed database: %v", err)
 	}
+	fmt.Println("Database seeded successfully!")
 }
 
 
@@ -54,8 +51,8 @@ func seedDB(db *sql.DB) error {
 		VALUES 
 		('John Doe', 30, 'john.doe@example.com'),
 		('Jane Smith', 25, 'jane.smith@example.com'),
-		('Bob Johnson', 45, 'bob.johnson@example.com')
-		ON CONFLICT (NAME) DO NOTHING;
+		('Bob Johnson', 45, 'bob.johnson@example.com');
+
 	`)
 	return err
 }
