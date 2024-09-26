@@ -15,7 +15,7 @@ type Storage interface {
 	UpdateAccount(*Account) error
 	GetAccounts() ([]*Account, error)
 	GetAccountByID(int) (*Account, error)
-	GetCompanies() ([]*types.Company, error)
+	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
 }
 
 type PostgresStore struct {
@@ -133,27 +133,50 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 	return account, err
 }
 
-func (s *PostgresStore) GetCompanies() ([]*types.Company, error) {
-	query := `select * from company`
-	rows, err := s.db.Query(query)
+func (s *PostgresStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+	// Count total number of companies
+	var totalCount int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM company").Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
+
+	// Calculate pagination values
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	offset := (page - 1) * pageSize
+
+	// Query for paginated results
+	query := `SELECT *
+              FROM company 
+              ORDER BY id 
+              LIMIT $1 OFFSET $2`
+	rows, err := s.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
 	companies := []*types.Company{}
 	for rows.Next() {
 		cmp := new(types.Company)
 		err := rows.Scan(
-			&cmp.CmpID,
+			&cmp.ID,
 			&cmp.Name,
-			&cmp.CmpLunced,
+			&cmp.CmpLaunched,
 			&cmp.SubscriberCount,
-			&cmp.Efficincy,
+			&cmp.Efficiency,
 		)
 		if err != nil {
 			return nil, err
 		}
 		companies = append(companies, cmp)
 	}
-	return companies, nil
+
+	return &types.PaginatedResponse{
+		TotalCount:  totalCount,
+		TotalPages:  totalPages,
+		CurrentPage: page,
+		PageSize:    pageSize,
+		Data:        companies,
+	}, nil
 }

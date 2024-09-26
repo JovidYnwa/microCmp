@@ -132,13 +132,24 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, accounts)
 }
 
-// Get /account
+// Get /account /companies?page=1&pageSize=10
 func (s *APIServer) handleGetCompanies(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetCompanies()
-	if err != nil {
-		return err
-	}
-	return WriteJSON(w, http.StatusOK, accounts)
+    // Parse query parameters for pagination
+    page, err := strconv.Atoi(r.URL.Query().Get("page"))
+    if err != nil || page < 1 {
+        page = 1
+    }
+    pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+    if err != nil || pageSize < 1 {
+        pageSize = 10 // Default page size
+    }
+
+    paginatedResponse, err := s.store.GetCompanies(page, pageSize)
+    if err != nil {
+        return err
+    }
+
+    return WriteJSON(w, http.StatusOK, paginatedResponse)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
