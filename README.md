@@ -10,3 +10,7 @@ docker run -v /Users/jovid/Desktop/Dev/microCmp/migrations:/migrations --network
 
 --Windows
 docker run -v C:/Users/dzhovid.nurov/Desktop/dev/MicroCmp/migrations:/migrations --network host migrate/migrate -path=/migrations/ -database "postgresql://postgres:test@localhost:5432/postgres?sslmode=disable" up
+
+docker-compose exec web go run scripts/seed.go
+
+
