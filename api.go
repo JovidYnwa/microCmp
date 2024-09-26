@@ -193,8 +193,10 @@ func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
+    w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Header().Add("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+    encoder.SetIndent("", "  ")
 	return json.NewEncoder(w).Encode(v)
 }
 
