@@ -1,6 +1,5 @@
 FROM golang:1.22-alpine
 
-
 # Set the working directory to /app
 WORKDIR /app
 
@@ -13,11 +12,9 @@ RUN go mod download
 # Copy the entire source code to the working directory
 COPY . .
 
-# Build the Go application
-RUN go build -o main .
-
 # Expose the port specified by the PORT environment variable
 EXPOSE 3001
 
-# Set the entry point of the container to the executable
-CMD ["./main"]
+# We're not pre-compiling the binary for development
+# The actual run command is specified in docker-compose.yml
+CMD ["go", "run", "main.go"]

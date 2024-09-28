@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -8,17 +8,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/JovidYnwa/microCmp/db"
+	"github.com/JovidYnwa/microCmp/types"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 )
 
 type APIServer struct {
 	listenAddr string
-	store      Storage
+	store      db.Storage
 }
 
 // Constructor function for APIServer
-func NewAPIServer(listenAddr string, store Storage) *APIServer {
+func NewAPIServer(listenAddr string, store db.Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
 		store:      store,
@@ -39,7 +41,7 @@ func (s *APIServer) Run() {
 }
 
 func handleTestFunc(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, 200, "yo")
+	WriteJSON(w, 200, "yo11")
 }
 
 // Handler methods (all returning error)
@@ -56,7 +58,7 @@ func permissionDenied(w http.ResponseWriter) {
 	WriteJSON(w, http.StatusForbidden, ApiError{Error: "permission denied"})
 }
 
-func withJWTAuth(handlerFunc http.HandlerFunc, s Storage) http.HandlerFunc {
+func withJWTAuth(handlerFunc http.HandlerFunc, s db.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("calling JWT auth middleware")
 
@@ -134,31 +136,31 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 
 // Get /account /companies?page=1&pageSize=10
 func (s *APIServer) handleGetCompanies(w http.ResponseWriter, r *http.Request) error {
-    // Parse query parameters for pagination
-    page, err := strconv.Atoi(r.URL.Query().Get("page"))
-    if err != nil || page < 1 {
-        page = 1
-    }
-    pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
-    if err != nil || pageSize < 1 {
-        pageSize = 10 // Default page size
-    }
+	// Parse query parameters for pagination
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10 // Default page size
+	}
 
-    paginatedResponse, err := s.store.GetCompanies(page, pageSize)
-    if err != nil {
-        return err
-    }
+	paginatedResponse, err := s.store.GetCompanies(page, pageSize)
+	if err != nil {
+		return err
+	}
 
-    return WriteJSON(w, http.StatusOK, paginatedResponse)
+	return WriteJSON(w, http.StatusOK, paginatedResponse)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	createAccountRequest := new(CreateAccountRequest)
+	createAccountRequest := new(types.CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
 		return err
 	}
 
-	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
+	account := types.NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
@@ -184,7 +186,7 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
-	transferReq := new(TransferRequest)
+	transferReq := new(types.TransferRequest)
 	if err := json.NewDecoder(r.Body).Decode(transferReq); err != nil {
 		return err
 	}
@@ -193,14 +195,14 @@ func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
-    w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	encoder := json.NewEncoder(w)
-    encoder.SetIndent("", "  ")
+	encoder.SetIndent("", "  ")
 	return json.NewEncoder(w).Encode(v)
 }
 
-func createJWT(account *Account) (string, error) {
+func createJWT(account *types.Account) (string, error) {
 	// Create the Claims
 	claims := &jwt.MapClaims{
 		"ExpiresAt":     jwt.NewNumericDate(time.Unix(1516239022, 0)),

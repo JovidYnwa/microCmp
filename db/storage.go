@@ -1,43 +1,20 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/JovidYnwa/microCmp/types"
 	_ "github.com/lib/pq"
 )
 
 type Storage interface {
-	CreateAccount(*Account) error
+	CreateAccount(*types.Account) error
 	DeleteAccount(int) error
-	UpdateAccount(*Account) error
-	GetAccounts() ([]*Account, error)
-	GetAccountByID(int) (*Account, error)
+	UpdateAccount(*types.Account) error
+	GetAccounts() ([]*types.Account, error)
+	GetAccountByID(int) (*types.Account, error)
 	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
-}
-
-type PostgresStore struct {
-	db *sql.DB
-}
-
-func NewPostgresStore() (*PostgresStore, error) {
-	connStr := "user=postgres dbname=postgres password=test host=db sslmode=disable port=5432"
-	db, err := sql.Open("postgres", connStr)
-
-	if err != nil {
-		fmt.Println("we are fucked")
-		log.Fatal(err)
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	return &PostgresStore{
-		db: db,
-	}, nil
 }
 
 func (s *PostgresStore) Init() error {
@@ -57,7 +34,7 @@ func (s *PostgresStore) CreateAccountTable() error {
 	return err
 }
 
-func (s *PostgresStore) CreateAccount(acc *Account) error {
+func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	query := `INSERT INTO account
 	(first_name, last_name, number, balance, created_at)
 	VALUES($1, $2, $3, $4, $5)`
@@ -77,7 +54,7 @@ func (s *PostgresStore) CreateAccount(acc *Account) error {
 	return nil
 }
 
-func (s *PostgresStore) UpdateAccount(*Account) error {
+func (s *PostgresStore) UpdateAccount(*types.Account) error {
 	return nil
 }
 
@@ -87,7 +64,7 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 	return err
 }
 
-func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
+func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
 	query := `select * from account a where a.id=$1`
 	rows, err := s.db.Query(query, id)
 	if err != nil {
@@ -99,14 +76,14 @@ func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
 	return nil, fmt.Errorf("account %d not found", id)
 }
 
-func (s *PostgresStore) GetAccounts() ([]*Account, error) {
+func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
 	query := `select * from account`
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 
-	accounts := []*Account{}
+	accounts := []*types.Account{}
 	for rows.Next() {
 		account, err := scanIntoAccount(rows)
 		if err != nil {
@@ -117,8 +94,8 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 	return accounts, nil
 }
 
-func scanIntoAccount(rows *sql.Rows) (*Account, error) {
-	account := new(Account)
+func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
+	account := new(types.Account)
 	err := rows.Scan(
 		&account.ID,
 		&account.FirstName,
