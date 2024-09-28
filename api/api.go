@@ -41,6 +41,7 @@ func (s *APIServer) Run() {
 }
 
 func handleTestFunc(w http.ResponseWriter, r *http.Request) {
+	fmt.Println()
 	WriteJSON(w, 200, "yo11")
 }
 
