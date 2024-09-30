@@ -46,11 +46,11 @@ func main() {
 func seedDB(db *sql.DB) error {
 	// Insert seed data
 	_, err := db.Exec(`
-		INSERT INTO TEST_TABLE (NAME, AGE, EMAIL) 
+		INSERT INTO company (NAME, company_launched, subscriber_count, efficiency) 
 		VALUES 
-		('John Doe', 30, 'john.doe@example.com'),
-		('Jane Smith', 25, 'jane.smith@example.com'),
-		('Bob Johnson', 45, 'bob.johnson@example.com');
+		('Mk <<No Pay>>', 5, 500, 50.2),
+		('Mk <<Must Pay>>', 6, 501, 50.2),
+		('Mk <<Suffer>>', 5, 500, 50.2);
 	`)
 	return err
 }

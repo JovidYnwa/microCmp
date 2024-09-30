@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"math/rand"
@@ -38,12 +38,3 @@ type SubscriberStatus struct {
 	Desc    string
 }
 
-type TRPL struct {
-	Name string
-	ID   int
-}
-
-type Region struct {
-	Name string
-	ID   int
-}

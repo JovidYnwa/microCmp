@@ -2,18 +2,18 @@ services:
   web:
     build: .
     volumes:
-      # - .:/app
-      - go-modules:/go/pkg/mod
-    working_dir: /app
+      - .:/app
     ports:
       - "3001:3001"
+    tty: true
+    stdin_open: true
+    command: go run main.go  # Changed from ./main to go run main.go
     depends_on:
       - db
     env_file:
       - .env
     environment:
       - DB_HOST=db
-    command: ./main  # This will run the built executable
 
   db:
     image: postgres
@@ -27,7 +27,5 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
-
 volumes:
-  go-modules:
   postgres_data:

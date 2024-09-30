@@ -2,10 +2,14 @@ package main
 
 import (
 	"log"
+
+	"github.com/JovidYnwa/microCmp/api"
+	"github.com/JovidYnwa/microCmp/db"
 )
 
 func main() {
-	store, err := NewPostgresStore()
+	log.Println("Json API server running on port: ")
+	store, err := db.NewPostgresStore()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -14,6 +18,6 @@ func main() {
 		log.Fatalf("table was not created, %v", err)
 	}
 
-	server := NewAPIServer(":3001", store)
+	server := api.NewAPIServer(":3001", store)
 	server.Run()
 }
