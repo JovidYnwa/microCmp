@@ -240,10 +240,20 @@ func getID(r *http.Request) (int, error) {
 }
 
 func (s *APIServer) handleCreateCompany(w http.ResponseWriter, r *http.Request) error {
-	fmt.Println(r.Body)
 	createCompanyRequest := new(types.CreateCompanyReq)
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
 		return err
 	}
+
+	cmpID, err := s.store.SetCompany(createCompanyRequest.Company)
+	if err != nil {
+		return err
+	}
+	createCompanyRequest.CompanyInfo.CompanyID = *cmpID
+
+	if err := s.store.SetCompanyInfo(createCompanyRequest.CompanyInfo); err != nil {
+		return err
+	}
+
 	return WriteJSON(w, http.StatusOK, createCompanyRequest)
 }

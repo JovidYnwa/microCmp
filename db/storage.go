@@ -15,6 +15,8 @@ type Storage interface {
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
+	SetCompany(c types.Company) (*int, error)
+	SetCompanyInfo(c types.CompanyInfo) error
 }
 
 func (s *PostgresStore) Init() error {
@@ -39,7 +41,7 @@ func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	(first_name, last_name, number, balance, created_at)
 	VALUES($1, $2, $3, $4, $5)`
 
-	resp, err := s.db.Query(
+	_, err := s.db.Query(
 		query,
 		acc.FirstName,
 		acc.LastName,
@@ -50,7 +52,6 @@ func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%+v\n", resp)
 	return nil
 }
 
@@ -157,3 +158,49 @@ func (s *PostgresStore) GetCompanies(page, pageSize int) (*types.PaginatedRespon
 		Data:        companies,
 	}, nil
 }
+
+func (s *PostgresStore) SetCompany(c types.Company) (*int, error) {
+    var compId int
+    query := `INSERT INTO company
+    (name, company_launched, subscriber_count, efficiency)
+    VALUES($1, $2, $3, $4)
+    RETURNING id`
+
+    err := s.db.QueryRow(
+        query,
+        c.Name,
+        c.CmpLaunched,
+        c.SubscriberCount,
+        c.Efficiency).Scan(&compId)
+
+    if err != nil {
+        return nil, err
+    }
+    return &compId, nil
+}
+
+func (s *PostgresStore) SetCompanyInfo(c types.CompanyInfo) error {
+    query := `INSERT INTO company_info 
+    (company_id, trpl_type_name, trpl_name, balance_begin, balance_end, subs_status_name, subs_device_name, region, sms_tj, sms_ru, sms_eng)
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+
+    _, err := s.db.Exec(
+        query,
+        c.CompanyID,
+        c.TrplTypeName,
+        c.TrplName,
+        c.BalanceBegin,
+        c.BalanceEnd,
+        c.SubsStatusName,
+        c.SubsDeviceName,
+        c.RegionName,
+        c.SmsTj,
+        c.SmsRus,
+        c.SmsEng)
+
+    if err != nil {
+        return err
+    }
+    return nil
+}
+
