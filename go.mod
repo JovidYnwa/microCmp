@@ -12,5 +12,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/rs/cors v1.11.1 // indirect
+	github.com/sijms/go-ora/v2 v2.8.21 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )

@@ -12,7 +12,10 @@ import (
 	"github.com/JovidYnwa/microCmp/types"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
+
+
 
 type APIServer struct {
 	listenAddr string
@@ -30,19 +33,25 @@ func NewAPIServer(listenAddr string, store db.Storage) *APIServer {
 // Run method to start the server
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
+
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 	router.HandleFunc("/companies", makeHTTPHandleFunc(s.handleGetCompanies))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.store))
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
-	router.HandleFunc("/test", handleTestFunc)
 	router.HandleFunc("/company", makeHTTPHandleFunc(s.handleCreateCompany))
 
-	log.Println("Json API server running on port: ", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, router)
-}
+	// Enable CORS for all routes
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	})
 
-func handleTestFunc(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, 200, "yo11")
+	handler := c.Handler(router)
+
+	log.Println("Json API server running on port: ", s.listenAddr)
+	http.ListenAndServe(s.listenAddr, handler)
 }
 
 // Handler methods (all returning error)
