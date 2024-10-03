@@ -19,6 +19,8 @@ type Storage interface {
 	SetCompanyInfo(c types.CompanyInfo) error
 }
 
+
+
 func (s *PostgresStore) Init() error {
 	return s.CreateAccountTable()
 }

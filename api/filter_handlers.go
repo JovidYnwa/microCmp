@@ -1,21 +1,45 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/JovidYnwa/microCmp/db"
 )
 
 type CompanyHandler struct {
-	store db.Storage
+	filterStore db.CompanyFilterStore
 }
 
-func NewCompanyHandler(companryStore db.Storage) *CompanyHandler {
+func NewCompanyHandler(companyStore db.CompanyFilterStore) *CompanyHandler {
 	return &CompanyHandler{
-		store: companryStore,
+		filterStore: companyStore,
 	}
 }
 
-func HandleTestFunc1(w http.ResponseWriter, r *http.Request) {
-	WriteJSON(w, 200, "yo12")
+func (h *CompanyHandler) HandleListTrpls(w http.ResponseWriter, r *http.Request) {
+	result, err := h.filterStore.GetTrpls()
+	if err != nil {
+		fmt.Printf("Trpls %s", err)
+		WriteJSON(w, 401, "smth bad happaned")
+	}
+	WriteJSON(w, 200, result)
+}
+
+func (h *CompanyHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request) {
+	result, err := h.filterStore.GetRegions()
+	if err != nil {
+		fmt.Printf("Trpls %s", err)
+		WriteJSON(w, 401, "smth bad happaned")
+	}
+	WriteJSON(w, 200, result)
+}
+
+func (h *CompanyHandler) HandleSubscriberStatus(w http.ResponseWriter, r *http.Request) {
+	result, err := h.filterStore.GetSubsStatuses()
+	if err != nil {
+		fmt.Printf("Trpls %s", err)
+		WriteJSON(w, 401, "smth bad happaned")
+	}
+	WriteJSON(w, 200, result)
 }

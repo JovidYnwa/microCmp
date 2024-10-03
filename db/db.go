@@ -5,12 +5,17 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/url"
 	"time"
 )
 
 type PostgresStore struct {
 	db *sql.DB
+}
+
+func NewPostgresStore1(db *sql.DB) *PostgresStore {
+	return &PostgresStore{
+		db: db,
+	}
 }
 
 type DatabaseConfig struct {
@@ -40,11 +45,28 @@ func NewPostgresStore() (*PostgresStore, error) {
 	}, nil
 }
 
+func ConnectToPostgreSQL(config DatabaseConfig) (*sql.DB, error) {
+	connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", config.Type, config.User, config.Password, config.Host, config.Port, config.Name)
+	db, err := sql.Open("postgres", connectionString)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("ping problem ", err)
+		db.Close()
+		return nil, fmt.Errorf("error pinging db: %w", err)
+	}
+	return db, nil
+}
+
 func ConnectToOracleGoOra(config DatabaseConfig) (*sql.DB, error) {
 	connectionString := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
 		config.Type,
 		config.User,
-		url.QueryEscape(config.Password),
+		config.Password,
 		config.Host,
 		config.Port,
 		config.Name,
@@ -56,8 +78,8 @@ func ConnectToOracleGoOra(config DatabaseConfig) (*sql.DB, error) {
 	}
 
 	// Set connection pool parameters
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(time.Minute * 5)
 	db.SetConnMaxIdleTime(time.Minute * 5)
 
