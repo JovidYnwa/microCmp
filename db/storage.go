@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Storage interface {
+type CompanyStore interface {
 	CreateAccount(*types.Account) error
 	DeleteAccount(int) error
 	UpdateAccount(*types.Account) error
@@ -19,13 +19,21 @@ type Storage interface {
 	SetCompanyInfo(c types.CompanyInfo) error
 }
 
+type PgCompanyStore struct {
+	db *sql.DB
+}
 
+func NewPgCompanyStore(db *sql.DB) *PgCompanyStore {
+	return &PgCompanyStore{
+		db: db,
+	}
+}
 
-func (s *PostgresStore) Init() error {
+func (s *PgCompanyStore) Init() error {
 	return s.CreateAccountTable()
 }
 
-func (s *PostgresStore) CreateAccountTable() error {
+func (s *PgCompanyStore) CreateAccountTable() error {
 	query := `CREATE TABLE IF NOT EXISTS account (
 		id SERIAL PRIMARY KEY,
 		first_name VARCHAR(50),
@@ -38,7 +46,7 @@ func (s *PostgresStore) CreateAccountTable() error {
 	return err
 }
 
-func (s *PostgresStore) CreateAccount(acc *types.Account) error {
+func (s *PgCompanyStore) CreateAccount(acc *types.Account) error {
 	query := `INSERT INTO account
 	(first_name, last_name, number, balance, created_at)
 	VALUES($1, $2, $3, $4, $5)`
@@ -57,17 +65,17 @@ func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	return nil
 }
 
-func (s *PostgresStore) UpdateAccount(*types.Account) error {
+func (s *PgCompanyStore) UpdateAccount(*types.Account) error {
 	return nil
 }
 
-func (s *PostgresStore) DeleteAccount(id int) error {
+func (s *PgCompanyStore) DeleteAccount(id int) error {
 	query := `delete from account a where a.id=$1`
 	_, err := s.db.Query(query, id)
 	return err
 }
 
-func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
+func (s *PgCompanyStore) GetAccountByID(id int) (*types.Account, error) {
 	query := `select * from account a where a.id=$1`
 	rows, err := s.db.Query(query, id)
 	if err != nil {
@@ -79,7 +87,7 @@ func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
 	return nil, fmt.Errorf("account %d not found", id)
 }
 
-func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
+func (s *PgCompanyStore) GetAccounts() ([]*types.Account, error) {
 	query := `select * from account`
 	rows, err := s.db.Query(query)
 	if err != nil {
@@ -113,7 +121,7 @@ func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 	return account, err
 }
 
-func (s *PostgresStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
 	// Count total number of companies
 	var totalCount int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM company").Scan(&totalCount)
@@ -161,48 +169,47 @@ func (s *PostgresStore) GetCompanies(page, pageSize int) (*types.PaginatedRespon
 	}, nil
 }
 
-func (s *PostgresStore) SetCompany(c types.Company) (*int, error) {
-    var compId int
-    query := `INSERT INTO company
+func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
+	var compId int
+	query := `INSERT INTO company
     (name, company_launched, subscriber_count, efficiency)
     VALUES($1, $2, $3, $4)
     RETURNING id`
 
-    err := s.db.QueryRow(
-        query,
-        c.Name,
-        c.CmpLaunched,
-        c.SubscriberCount,
-        c.Efficiency).Scan(&compId)
+	err := s.db.QueryRow(
+		query,
+		c.Name,
+		c.CmpLaunched,
+		c.SubscriberCount,
+		c.Efficiency).Scan(&compId)
 
-    if err != nil {
-        return nil, err
-    }
-    return &compId, nil
+	if err != nil {
+		return nil, err
+	}
+	return &compId, nil
 }
 
-func (s *PostgresStore) SetCompanyInfo(c types.CompanyInfo) error {
-    query := `INSERT INTO company_info 
+func (s *PgCompanyStore) SetCompanyInfo(c types.CompanyInfo) error {
+	query := `INSERT INTO company_info 
     (company_id, trpl_type_name, trpl_name, balance_begin, balance_end, subs_status_name, subs_device_name, region, sms_tj, sms_ru, sms_eng)
     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
-    _, err := s.db.Exec(
-        query,
-        c.CompanyID,
-        c.TrplTypeName,
-        c.TrplName,
-        c.BalanceBegin,
-        c.BalanceEnd,
-        c.SubsStatusName,
-        c.SubsDeviceName,
-        c.RegionName,
-        c.SmsTj,
-        c.SmsRus,
-        c.SmsEng)
+	_, err := s.db.Exec(
+		query,
+		c.CompanyID,
+		c.TrplTypeName,
+		c.TrplName,
+		c.BalanceBegin,
+		c.BalanceEnd,
+		c.SubsStatusName,
+		c.SubsDeviceName,
+		c.RegionName,
+		c.SmsTj,
+		c.SmsRus,
+		c.SmsEng)
 
-    if err != nil {
-        return err
-    }
-    return nil
+	if err != nil {
+		return err
+	}
+	return nil
 }
-

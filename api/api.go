@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,50 +11,46 @@ import (
 	"github.com/JovidYnwa/microCmp/types"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 )
 
-
-
-type APIServer struct {
-	listenAddr string
-	store      db.Storage
+type CompanyHandler struct {
+	store db.CompanyStore
 }
 
-// Constructor function for APIServer
-func NewAPIServer(listenAddr string, store db.Storage) *APIServer {
-	return &APIServer{
-		listenAddr: listenAddr,
-		store:      store,
+// Constructor function for CompanyHandler
+func NewCompanyHandler(store db.CompanyStore) *CompanyHandler {
+	return &CompanyHandler{
+		store: store,
 	}
 }
 
 // Run method to start the server
-func (s *APIServer) Run() {
-	router := mux.NewRouter()
+func (s *CompanyHandler) Run() {
+	// router := mux.NewRouter()
 
-	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
-	router.HandleFunc("/companies", makeHTTPHandleFunc(s.handleGetCompanies))
-	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.store))
-	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
-	router.HandleFunc("/company", makeHTTPHandleFunc(s.handleCreateCompany))
+	// router.HandleFunc("/companies", makeHTTPHandleFunc(s.handleGetCompanies))
+	// router.HandleFunc("/company", makeHTTPHandleFunc(s.handleCreateCompany))
+
+	// router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
+	// router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.store))
+	// router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
 
 	// Enable CORS for all routes
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Allow all origins
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-	})
+	// c := cors.New(cors.Options{
+	// 	AllowedOrigins:   []string{"*"}, // Allow all origins
+	// 	AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+	// 	AllowedHeaders:   []string{"Authorization", "Content-Type"},
+	// 	AllowCredentials: true,
+	// })
 
-	handler := c.Handler(router)
+	// handler := c.Handler(router)
 
-	log.Println("Json API server running on port: ", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, handler)
+	// log.Println("Json API server running on port: ", s.listenAddr)
+	// http.ListenAndServe(s.listenAddr, handler)
 }
 
 // Handler methods (all returning error)
-func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
 		return s.handleGetAccount(w, r)
 	} else if r.Method == "POST" {
@@ -68,7 +63,7 @@ func permissionDenied(w http.ResponseWriter) {
 	WriteJSON(w, http.StatusForbidden, ApiError{Error: "permission denied"})
 }
 
-func withJWTAuth(handlerFunc http.HandlerFunc, s db.Storage) http.HandlerFunc {
+func withJWTAuth(handlerFunc http.HandlerFunc, s db.CompanyStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("calling JWT auth middleware")
 
@@ -114,7 +109,7 @@ func validateJWT(tokenString string) (*jwt.Token, error) {
 
 }
 
-func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
 		idStr := mux.Vars(r)["id"]
 		id, err := strconv.Atoi(idStr)
@@ -136,7 +131,7 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 }
 
 // Get /account
-func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
 	accounts, err := s.store.GetAccounts()
 	if err != nil {
 		return err
@@ -144,8 +139,10 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, accounts)
 }
 
+// func (h *CompanyFilterHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request) {
+
 // Get /account /companies?page=1&pageSize=10
-func (s *APIServer) handleGetCompanies(w http.ResponseWriter, r *http.Request) error {
+func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for pagination
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
@@ -156,15 +153,15 @@ func (s *APIServer) handleGetCompanies(w http.ResponseWriter, r *http.Request) e
 		pageSize = 10 // Default page size
 	}
 
-	paginatedResponse, err := s.store.GetCompanies(page, pageSize)
+	paginatedResponse, err := h.store.GetCompanies(page, pageSize)
 	if err != nil {
-		return err
+		//return err
+		WriteJSON(w, http.StatusOK, paginatedResponse)
 	}
-
-	return WriteJSON(w, http.StatusOK, paginatedResponse)
+	WriteJSON(w, http.StatusOK, paginatedResponse)
 }
 
-func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	createAccountRequest := new(types.CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
 		return err
@@ -183,7 +180,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	return WriteJSON(w, http.StatusOK, account)
 }
 
-func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -195,7 +192,7 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
 
-func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
+func (s *CompanyHandler) handleTransfer(w http.ResponseWriter, r *http.Request) error {
 	transferReq := new(types.TransferRequest)
 	if err := json.NewDecoder(r.Body).Decode(transferReq); err != nil {
 		return err
@@ -248,21 +245,26 @@ func getID(r *http.Request) (int, error) {
 	return id, nil
 }
 
-func (s *APIServer) handleCreateCompany(w http.ResponseWriter, r *http.Request) error {
+func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Request) {
 	createCompanyRequest := new(types.CreateCompanyReq)
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
-		return err
+		// return err
+		WriteJSON(w, http.StatusBadRequest, "bad bad ")
+
 	}
 
-	cmpID, err := s.store.SetCompany(createCompanyRequest.Company)
+	cmpID, err := h.store.SetCompany(createCompanyRequest.Company)
 	if err != nil {
-		return err
+		// return err
+		WriteJSON(w, http.StatusBadRequest, "bad bad bad ")
+
 	}
 	createCompanyRequest.CompanyInfo.CompanyID = *cmpID
 
-	if err := s.store.SetCompanyInfo(createCompanyRequest.CompanyInfo); err != nil {
-		return err
+	if err := h.store.SetCompanyInfo(createCompanyRequest.CompanyInfo); err != nil {
+		// return err
+		WriteJSON(w, http.StatusBadRequest, "bad bad 1")
 	}
 
-	return WriteJSON(w, http.StatusOK, createCompanyRequest)
+	WriteJSON(w, http.StatusOK, createCompanyRequest)
 }

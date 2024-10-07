@@ -7,17 +7,17 @@ import (
 	"github.com/JovidYnwa/microCmp/db"
 )
 
-type CompanyHandler struct {
+type CompanyFilterHandler struct {
 	filterStore db.CompanyFilterStore
 }
 
-func NewCompanyHandler(companyStore db.CompanyFilterStore) *CompanyHandler {
-	return &CompanyHandler{
+func NewCompanyFilterHandler(companyStore db.CompanyFilterStore) *CompanyFilterHandler {
+	return &CompanyFilterHandler{
 		filterStore: companyStore,
 	}
 }
 
-func (h *CompanyHandler) HandleListTrpls(w http.ResponseWriter, r *http.Request) {
+func (h *CompanyFilterHandler) HandleListTrpls(w http.ResponseWriter, r *http.Request) {
 	result, err := h.filterStore.GetTrpls()
 	if err != nil {
 		fmt.Printf("Trpls %s", err)
@@ -26,7 +26,7 @@ func (h *CompanyHandler) HandleListTrpls(w http.ResponseWriter, r *http.Request)
 	WriteJSON(w, 200, result)
 }
 
-func (h *CompanyHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request) {
+func (h *CompanyFilterHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request) {
 	result, err := h.filterStore.GetRegions()
 	if err != nil {
 		fmt.Printf("Trpls %s", err)
@@ -35,7 +35,7 @@ func (h *CompanyHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request
 	WriteJSON(w, 200, result)
 }
 
-func (h *CompanyHandler) HandleSubscriberStatus(w http.ResponseWriter, r *http.Request) {
+func (h *CompanyFilterHandler) HandleSubscriberStatus(w http.ResponseWriter, r *http.Request) {
 	result, err := h.filterStore.GetSubsStatuses()
 	if err != nil {
 		fmt.Printf("Trpls %s", err)
