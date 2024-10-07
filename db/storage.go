@@ -198,7 +198,7 @@ func (s *PgCompanyStore) SetCompanyInfo(c types.CompanyInfo) error {
 		query,
 		c.CompanyID,
 		c.TrplTypeName,
-		c.TrplName,
+		c.Trpl.Name,
 		c.BalanceBegin,
 		c.BalanceEnd,
 		c.SubsStatusName,

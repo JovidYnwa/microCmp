@@ -250,7 +250,6 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
 		// return err
 		WriteJSON(w, http.StatusBadRequest, "bad bad ")
-
 	}
 
 	cmpID, err := h.store.SetCompany(createCompanyRequest.Company)

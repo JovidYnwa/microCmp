@@ -17,22 +17,22 @@ type Company struct {
 }
 
 type CompanyInfo struct {
-	CompanyID      int     `json:"cmp_id"`
-	TrplType       int     `json:"trplType"`
-	TrplTypeName   string  `json:"trplTypeName"`
-	TrplID         int     `json:"trplId"`
-	TrplName       string  `json:"trplName"`
-	BalanceBegin   float64 `json:"balanceBegin"`
-	BalanceEnd     float64 `json:"balanceEnd"`
-	SubsStatusID   int     `json:"subsStatusId"`
-	SubsStatusName string  `json:"subsStatusName"`
-	SubsDevice     int     `json:"subsDeviceId"`
-	SubsDeviceName string  `json:"subsDeviceName"`
-	RegionID       int     `json:"regionId"`
-	RegionName     string  `json:"regionName"`
-	SmsTj          string  `json:"smsTj"`
-	SmsRus         string  `json:"smsRus"`
-	SmsEng         string  `json:"SmsEng"`
+	CompanyID int `json:"cmp_id"`
+
+	TrplType       int        `json:"trplType"`
+	TrplTypeName   string     `json:"trplTypeName"`
+	Trpl           BaseFilter `json:"trpl"`
+	BalanceBegin   float64    `json:"balanceBegin"`
+	BalanceEnd     float64    `json:"balanceEnd"`
+	SubsStatusID   int        `json:"subsStatusId"`
+	SubsStatusName string     `json:"subsStatusName"`
+	SubsDevice     int        `json:"subsDeviceId"`
+	SubsDeviceName string     `json:"subsDeviceName"`
+	RegionID       int        `json:"regionId"`
+	RegionName     string     `json:"regionName"`
+	SmsTj          string     `json:"smsTj"`
+	SmsRus         string     `json:"smsRus"`
+	SmsEng         string     `json:"SmsEng"`
 }
 
 type CreateCompanyReq struct {
