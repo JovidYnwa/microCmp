@@ -1,7 +1,6 @@
-
 CREATE TABLE IF NOT EXISTS company_info (
     company_id INTEGER PRIMARY KEY,
-    FOREIGN KEY (company_id) REFERENCES company(id),
+    FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,  -- Cascade delete
     trpl_type_name VARCHAR(255),
     trpl_name VARCHAR(255),
     balance_begin NUMERIC(5,2),
