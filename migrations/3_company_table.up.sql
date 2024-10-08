@@ -6,7 +6,4 @@ CREATE TABLE IF NOT EXISTS company (
     start_time TIMESTAMP,             -- Start time
     duration INTEGER,                 -- Duration
     repetition INTEGER,               -- Repetition count
-    company_launched INTEGER,         -- Launch year (Should be removed)
-    subscriber_count INTEGER CHECK (subscriber_count >= 0),  -- Non-negative subscriber count
-    efficiency NUMERIC(5, 2)          -- Precision for efficiency (e.g., 99.99)
 );
