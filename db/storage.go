@@ -149,7 +149,7 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 		cmp := new(types.Company)
 		err := rows.Scan(
 			&cmp.ID,
-			&cmp.Name,
+			&cmp.CmpName,
 			&cmp.CmpLaunched,
 			&cmp.SubscriberCount,
 			&cmp.Efficiency,
@@ -171,45 +171,77 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 
 func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 	var compId int
-	query := `INSERT INTO company
-    (name, company_launched, subscriber_count, efficiency)
-    VALUES($1, $2, $3, $4)
-    RETURNING id`
+
+	// First, insert into company table
+	query := `
+        INSERT INTO company (
+            cmp_name, 
+            navi_user, 
+            query_id,
+            start_time, 
+            duration, 
+            repetition, 
+            company_launched, 
+            subscriber_count, 
+            efficiency
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id`
 
 	err := s.db.QueryRow(
 		query,
-		c.Name,
-		c.CmpLaunched,
-		c.SubscriberCount,
-		c.Efficiency).Scan(&compId)
+		c.CmpName,         // matches cmp_name in DB
+		c.NaviUser,        // matches navi_user in DB
+		c.DWHID,           // matches query_id in DB
+		c.StartTime,       // matches start_time in DB
+		c.Duration,        // matches duration in DB
+		c.Repition,        // matches repetition in DB
+		c.CmpLaunched,     // matches company_launched in DB
+		c.SubscriberCount, // matches subscriber_count in DB
+		c.Efficiency,      // matches efficiency in DB
+	).Scan(&compId)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error inserting company: %v", err)
 	}
+
 	return &compId, nil
 }
 
-func (s *PgCompanyStore) SetCompanyInfo(c types.CompanyInfo) error {
-	query := `INSERT INTO company_info 
-    (company_id, trpl_type_name, trpl_name, balance_begin, balance_end, subs_status_name, subs_device_name, region, sms_tj, sms_ru, sms_eng)
-    VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+// Function to insert company info
+func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo) error {
+	query := `
+        INSERT INTO company_info (
+            company_id,
+            trpl_type_name,
+            trpl_name,
+            balance_begin,
+            balance_end,
+            subs_status_name,
+            subs_device_name,
+            region,
+            sms_tj,
+            sms_ru,
+            sms_eng
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := s.db.Exec(
 		query,
-		c.CompanyID,
-		c.TrplTypeName,
-		c.Trpl.Name,
-		c.BalanceBegin,
-		c.BalanceEnd,
-		c.SubscriberStatus.Name,
-		c.SubsDeviceName,
-		c.Region.Name,
-		c.SmsTj,
-		c.SmsRus,
-		c.SmsEng)
+		info.CompanyID,
+		info.TrplTypeName,
+		info.Trpl.Name,
+		info.BalanceBegin,
+		info.BalanceEnd,
+		info.SubscriberStatus.Name,
+		info.SubsDeviceName,
+		info.Region.Name,
+		info.SmsTj,
+		info.SmsRus,
+		info.SmsEng,
+	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("error inserting company info: %v", err)
 	}
+
 	return nil
 }

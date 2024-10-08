@@ -1,5 +1,9 @@
 package types
 
+import (
+	"time"
+)
+
 type PaginatedResponse struct {
 	TotalCount  int         `json:"totalCount"`
 	TotalPages  int         `json:"totalPages"`
@@ -9,11 +13,16 @@ type PaginatedResponse struct {
 }
 
 type Company struct {
-	ID              int     `json:"id"`
-	Name            string  `json:"name"`
-	CmpLaunched     int     `json:"cmpLaunched"`
-	SubscriberCount int     `json:"subscriberCount"`
-	Efficiency      float64 `json:"efficiency"`
+	ID              int       `json:"id"`
+	CmpName         string    `json:"name"`
+	NaviUser        string    `json:"naviUser"`
+	Repition        int       `json:"repition"`
+	StartTime       time.Time `json:"startTime"`
+	Duration        int       `json:"durationDay"`
+	CmpLaunched     int       `json:"cmpLaunched"`
+	SubscriberCount int       `json:"subscriberCount"`
+	Efficiency      float64   `json:"efficiency"`
+	DWHID           string
 }
 
 type CompanyInfo struct {
