@@ -73,6 +73,7 @@ func main() {
 	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
 	router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
 	router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
+	router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
 
 	router.HandleFunc("/companies", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany)

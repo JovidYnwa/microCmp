@@ -201,9 +201,9 @@ func (s *PgCompanyStore) SetCompanyInfo(c types.CompanyInfo) error {
 		c.Trpl.Name,
 		c.BalanceBegin,
 		c.BalanceEnd,
-		c.SubsStatusName,
+		c.SubscriberStatus.Name,
 		c.SubsDeviceName,
-		c.RegionName,
+		c.Region.Name,
 		c.SmsTj,
 		c.SmsRus,
 		c.SmsEng)

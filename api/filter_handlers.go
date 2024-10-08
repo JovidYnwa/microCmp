@@ -43,3 +43,12 @@ func (h *CompanyFilterHandler) HandleSubscriberStatus(w http.ResponseWriter, r *
 	}
 	WriteJSON(w, 200, result)
 }
+
+func (h *CompanyFilterHandler) HandleServList(w http.ResponseWriter, r *http.Request) {
+	result, err := h.filterStore.GetServs()
+	if err != nil {
+		fmt.Printf("Servs %s", err)
+		WriteJSON(w, 401, err)
+	}
+	WriteJSON(w, 200, result)
+}

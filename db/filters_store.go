@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	"github.com/JovidYnwa/microCmp/types"
+	go_ora "github.com/sijms/go-ora/v2"
 )
 
 type CompanyFilterStore interface {
 	GetTrpls() ([]*types.BaseFilter, error)
 	GetRegions() ([]*types.BaseFilter, error)
 	GetSubsStatuses() ([]*types.BaseFilter, error)
+	GetServs() ([]*types.BaseFilter, error)
 }
 
 type DwhFilterStore struct {
@@ -94,4 +96,52 @@ func (s *DwhFilterStore) GetSubsStatuses() ([]*types.BaseFilter, error) {
 		regions = append(regions, region)
 	}
 	return regions, nil
+}
+
+func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
+	var (
+		inputIDVal int = -1
+		cursor     go_ora.RefCursor
+		resultCode int
+		resultText string
+		resutPos   string
+		cmdText    string
+	)
+
+	cmdText = `BEGIN 
+				odsadmin.get_actual_services_by_trpl(i_trpl_id => :i_trpl_id,
+											o_cursor_data => :o_cursor_data,
+											o_result => :o_result,
+											o_err_msg => :o_err_msg,
+											o_error_position => :o_error_position); 
+		END;`
+
+	_, err := s.db.Exec(cmdText,
+		inputIDVal,
+		sql.Out{Dest: &cursor},
+		sql.Out{Dest: &resultCode},
+		sql.Out{Dest: &resultText},
+		sql.Out{Dest: &resutPos},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("executing stored procedure Servs err: %w", err)
+	}
+
+	defer cursor.Close()
+
+	rows, err := cursor.Query()
+	if err != nil {
+		return nil, fmt.Errorf("retrieving data from Servs cursor  err: %w", err)
+	}
+	resp := []*types.BaseFilter{}
+	for rows.Next_() {
+		var serv types.BaseFilter
+		err = rows.Scan(&serv.ID, &serv.Name)
+		if err != nil {
+			return nil, fmt.Errorf("scanning Servs row for err: %w", err)
+		}
+		resp = append(resp, &serv)
+	}
+	return resp, nil
 }
