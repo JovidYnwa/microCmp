@@ -13,16 +13,14 @@ type PaginatedResponse struct {
 }
 
 type Company struct {
-	ID              int       `json:"id"`
-	CmpName         string    `json:"name"`
-	NaviUser        string    `json:"naviUser"`
-	Repition        int       `json:"repition"`
-	StartTime       time.Time `json:"startTime"`
-	Duration        int       `json:"durationDay"`
-	CmpLaunched     int       `json:"cmpLaunched"`
-	SubscriberCount int       `json:"subscriberCount"`
-	Efficiency      float64   `json:"efficiency"`
-	DWHID           string
+	ID         int       `json:"id"`
+	CmpName    string    `json:"name"`
+	NaviUser   string    `json:"naviUser"`
+	Repition   int       `json:"repition"`
+	StartTime  time.Time `json:"startTime"`
+	Duration   int       `json:"durationDay"`
+	Repetition float64   `json:"repetion"`
+	DWHID      string
 }
 
 type CompanyInfo struct {
@@ -45,4 +43,11 @@ type CompanyInfo struct {
 type CreateCompanyReq struct {
 	Company     Company     `json:"company"`
 	CompanyInfo CompanyInfo `json:"companyInfo"`
+}
+
+type CompanyDetail struct {
+	Efficiency       float64   `json:"efficiency"`
+	SubscriberAmount int64     `json:"subsAmount"`
+	StartDate        time.Time `json:"startDate"`
+	EndDate          time.Time `json:"endDate"`
 }

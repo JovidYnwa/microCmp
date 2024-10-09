@@ -15,6 +15,8 @@ type CompanyStore interface {
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
+	GetCompanyByID(comID int) (*types.PaginatedResponse, error)
+
 	SetCompany(c types.Company) (*int, error)
 	SetCompanyInfo(c types.CompanyInfo) error
 }
@@ -134,8 +136,8 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 	offset := (page - 1) * pageSize
 
 	// Query for paginated results
-	query := `SELECT *
-              FROM company 
+	query := `SELECT c.id, c.cmp_name, c.start_time, c.duration, c.repetition
+              FROM company c
               ORDER BY id 
               LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
@@ -150,9 +152,9 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 		err := rows.Scan(
 			&cmp.ID,
 			&cmp.CmpName,
-			&cmp.CmpLaunched,
-			&cmp.SubscriberCount,
-			&cmp.Efficiency,
+			&cmp.StartTime,
+			&cmp.Duration,
+			&cmp.Repetition,
 		)
 		if err != nil {
 			return nil, err
@@ -172,38 +174,30 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 	var compId int
 
-	// First, insert into company table
 	query := `
-        INSERT INTO company (
-            cmp_name, 
-            navi_user, 
-            query_id,
-            start_time, 
-            duration, 
-            repetition, 
-            company_launched, 
-            subscriber_count, 
-            efficiency
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id`
+		INSERT INTO company (
+			cmp_name, 
+			navi_user, 
+			query_id,    -- This was likely missing a value
+			start_time,
+			duration, 
+			repetition
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id`
 
 	err := s.db.QueryRow(
 		query,
-		c.CmpName,         // matches cmp_name in DB
-		c.NaviUser,        // matches navi_user in DB
-		c.DWHID,           // matches query_id in DB
-		c.StartTime,       // matches start_time in DB
-		c.Duration,        // matches duration in DB
-		c.Repition,        // matches repetition in DB
-		c.CmpLaunched,     // matches company_launched in DB
-		c.SubscriberCount, // matches subscriber_count in DB
-		c.Efficiency,      // matches efficiency in DB
+		c.CmpName,    
+		c.NaviUser,   
+		c.DWHID,    
+		c.StartTime,  
+		c.Duration,   
+		c.Repetition, 
 	).Scan(&compId)
-
+	
 	if err != nil {
 		return nil, fmt.Errorf("error inserting company: %v", err)
 	}
-
 	return &compId, nil
 }
 

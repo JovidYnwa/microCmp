@@ -139,28 +139,6 @@ func (s *CompanyHandler) handleGetAccount(w http.ResponseWriter, r *http.Request
 	return WriteJSON(w, http.StatusOK, accounts)
 }
 
-// func (h *CompanyFilterHandler) HandleRgionsrpls(w http.ResponseWriter, r *http.Request) {
-
-// Get /account /companies?page=1&pageSize=10
-func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters for pagination
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil || page < 1 {
-		page = 1
-	}
-	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
-	if err != nil || pageSize < 1 {
-		pageSize = 10 // Default page size
-	}
-
-	paginatedResponse, err := h.store.GetCompanies(page, pageSize)
-	if err != nil {
-		//return err
-		WriteJSON(w, http.StatusOK, paginatedResponse)
-	}
-	WriteJSON(w, http.StatusOK, paginatedResponse)
-}
-
 func (s *CompanyHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	createAccountRequest := new(types.CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
@@ -266,4 +244,36 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 	}
 
 	WriteJSON(w, http.StatusOK, createCompanyRequest)
+}
+
+// Get /account /companies?page=1&pageSize=10
+func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters for pagination
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10 // Default page size
+	}
+
+	paginatedResponse, err := h.store.GetCompanies(page, pageSize)
+	if err != nil {
+		fmt.Println(err)
+		WriteJSON(w, http.StatusOK, paginatedResponse)
+	}
+	WriteJSON(w, http.StatusOK, paginatedResponse)
+}
+
+// Get /companies?id=1
+func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.Request) {
+	companyID := mux.Vars(r)["id"]
+
+	// s, err := h.store.GetCompanies(page, pageSize)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	WriteJSON(w, http.StatusOK, paginatedResponse)
+	// }
+	WriteJSON(w, http.StatusOK, "dsalkjfhakjdshf"+companyID)
 }
