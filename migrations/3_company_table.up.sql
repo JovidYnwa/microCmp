@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS company (
     query_id VARCHAR(255) NOT NULL,   -- Request ID from billing
     start_time TIMESTAMP,             -- Start time
     duration INTEGER,                 -- Duration
-    repetition INTEGER,               -- Repetition count
+    repetition INTEGER               -- Repetition count
 );
