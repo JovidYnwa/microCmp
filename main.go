@@ -22,25 +22,25 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	dwhConfigs := db.DatabaseConfig{
-		Type:     os.Getenv("DWH_DB_TYPE"),
-		Name:     os.Getenv("DWH_DB_NAME"),
-		Host:     os.Getenv("DWH_DB_HOST"),
-		Port:     os.Getenv("DWH_DB_PORT"),
-		User:     os.Getenv("DWH_DB_USER"),
-		Password: os.Getenv("DWH_DB_PASSWORD"),
-	}
+	// dwhConfigs := db.DatabaseConfig{
+	// 	Type:     os.Getenv("DWH_DB_TYPE"),
+	// 	Name:     os.Getenv("DWH_DB_NAME"),
+	// 	Host:     os.Getenv("DWH_DB_HOST"),
+	// 	Port:     os.Getenv("DWH_DB_PORT"),
+	// 	User:     os.Getenv("DWH_DB_USER"),
+	// 	Password: os.Getenv("DWH_DB_PASSWORD"),
+	// }
 
-	oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
-	if err != nil {
-		log.Fatal("Failed to connect to the database:", err)
-	}
-	defer func() {
-		err := oracleClient.Close()
-		if err != nil {
-			log.Fatalf("Can't close go-ora connection: %s", err)
-		}
-	}()
+	// oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
+	// if err != nil {
+	// 	log.Fatal("Failed to connect to the database:", err)
+	// }
+	// defer func() {
+	// 	err := oracleClient.Close()
+	// 	if err != nil {
+	// 		log.Fatalf("Can't close go-ora connection: %s", err)
+	// 	}
+	// }()
 
 	pgConfigs := db.DatabaseConfig{
 		Type:     os.Getenv("DB_TYPE"),
@@ -66,14 +66,14 @@ func main() {
 	companyStore := db.NewPgCompanyStore(pgClient)
 	companyHandler := api.NewCompanyHandler(companyStore)
 
-	companyFilterSotre := db.NewOracleMainScreenStore(oracleClient)
-	companyFilterHandler := api.NewCompanyFilterHandler(companyFilterSotre)
+	// companyFilterSotre := db.NewOracleMainScreenStore(oracleClient)
+	// companyFilterHandler := api.NewCompanyFilterHandler(companyFilterSotre)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
-	router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
-	router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
-	router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
+	// router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
+	// router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
+	// router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
+	// router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
 
 	router.HandleFunc("/companies", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany)

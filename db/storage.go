@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/JovidYnwa/microCmp/types"
@@ -18,7 +19,7 @@ type CompanyStore interface {
 	GetCompanyByID(comID int) (*types.PaginatedResponse, error)
 
 	SetCompany(c types.Company) (*int, error)
-	SetCompanyInfo(c types.CompanyInfo) error
+	SetCompanyInfo(info types.CompanyInfo, sms types.SmsBefore, action types.CompanyAction) error
 }
 
 type PgCompanyStore struct {
@@ -190,55 +191,86 @@ func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 		query,
 		c.CmpName,
 		c.CmpDesc,
-		c.NaviUser,   
-		c.DWHID,    
-		c.StartTime,  
-		c.Duration,   
-		c.Repetition, 
+		c.NaviUser,
+		c.DWHID,
+		c.StartTime,
+		c.Duration,
+		c.Repetition,
 	).Scan(&compId)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("error inserting company: %v", err)
 	}
 	return &compId, nil
 }
 
-// Function to insert company info
-func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo) error {
+func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBefore, action types.CompanyAction) error {
 	query := `
         INSERT INTO company_info (
             company_id,
-            trpl_type_name,
-            trpl_name,
-            balance_begin,
-            balance_end,
-            subs_status_name,
-            subs_device_name,
-            region,
-            sms_tj,
-            sms_ru,
-            sms_eng
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+            cmp_filter,
+			sms_data,
+			action_data
+        ) VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb)` // Note the ::jsonb type cast
 
-	_, err := s.db.Exec(
+	// Create a map for the filter data
+	filterData := map[string]interface{}{
+		"phoneType":        info.PhoneType,
+		"trpl":             info.Trpl,
+		"balanceLimits":    info.BalanceLimits,
+		"subscriberStatus": info.SubscriberStatus,
+		"deviceType":       info.DeviceType,
+		"packSpent":        info.PackSpent,
+		"arpuLimits":       info.ARPULimits,
+		"region":           info.Region,
+		"start":            info.SimDate,
+		"service":          info.Service,
+		"usingWheel":       info.WheelUsage,
+	}
+
+	// Marshal the map to JSON
+	filterJsonData, err := json.Marshal(filterData)
+	if err != nil {
+		return fmt.Errorf("error marshaling filter data: %v", err)
+	}
+
+	// Create a map for the filter data
+	sendSmsData := map[string]interface{}{
+		"smsText":      sms.SmsText,
+		"smsDay":       sms.SmsDay,
+		"smsTextRemid": sms.SmsTextRemid,
+	}
+
+	// Marshal the map to JSON
+	sendSmsJsonData, err := json.Marshal(sendSmsData)
+	if err != nil {
+		return fmt.Errorf("error marshaling sendsms data: %v", err)
+	}
+
+	actionSmsData := map[string]interface{}{
+		"action":  action.Action,
+		"smsText": action.Sms,
+		"prize":   action.Prize,
+	}
+
+	// Marshal the map to JSON
+	actionSmsJsonData, err := json.Marshal(actionSmsData)
+	if err != nil {
+		return fmt.Errorf("error marshaling action data: %v", err)
+	}
+
+	// Use sql.RawBytes to pass JSON data
+	_, err = s.db.Exec(
 		query,
 		info.CompanyID,
-		info.TrplTypeName,
-		info.Trpl.Name,
-		info.BalanceBegin,
-		info.BalanceEnd,
-		info.SubscriberStatus.Name,
-		info.SubsDeviceName,
-		info.Region.Name,
-		info.SmsTj,
-		info.SmsRus,
-		info.SmsEng,
+		json.RawMessage(filterJsonData), // Convert to RawMessage
+		json.RawMessage(sendSmsJsonData),
+		json.RawMessage(actionSmsJsonData),
 	)
 
 	if err != nil {
 		return fmt.Errorf("error inserting company info: %v", err)
 	}
-
 	return nil
 }
 
@@ -247,7 +279,7 @@ func (s *PgCompanyStore) GetCompanyByID(comID int) (*types.PaginatedResponse, er
 	FROM company_repetion c
 	ORDER BY id 
 	LIMIT $1 OFFSET $2`
-	
+
 	rows, err := s.db.Query(query)
 	if err != nil {
 		fmt.Println("gaga")

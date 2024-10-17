@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -180,11 +182,22 @@ func (s *CompanyHandler) handleTransfer(w http.ResponseWriter, r *http.Request) 
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
+	// Check if the header has already been written
+	if w.Header().Get("Content-Type") != "" {
+		return fmt.Errorf("response already written")
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	return json.NewEncoder(w).Encode(v)
+
+	if err := encoder.Encode(v); err != nil {
+		return fmt.Errorf("failed to encode JSON: %w", err)
+	}
+
+	return nil
 }
 
 func createJWT(account *types.Account) (string, error) {
@@ -224,26 +237,64 @@ func getID(r *http.Request) (int, error) {
 }
 
 func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Request) {
+	// Verify content type
+	if r.Header.Get("Content-Type") != "application/json" {
+		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Content-Type must be application/json"})
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to read request body: " + err.Error()})
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	createCompanyRequest := new(types.CreateCompanyReq)
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
-		// return err
-		WriteJSON(w, http.StatusBadRequest, "bad bad ")
+		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Invalid request body: " + err.Error()})
+		return
 	}
 
+	// Validate the request
+	if err := validateCreateCompanyRequest(createCompanyRequest); err != nil {
+		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+		return
+	}
+
+	// Create company
 	cmpID, err := h.store.SetCompany(createCompanyRequest.Company)
 	if err != nil {
-		// return err
-		WriteJSON(w, http.StatusBadRequest, "bad bad bad ")
-
+		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create company: " + err.Error()})
+		return
 	}
+
+	// Update CompanyInfo with the new company ID
 	createCompanyRequest.CompanyInfo.CompanyID = *cmpID
 
-	if err := h.store.SetCompanyInfo(createCompanyRequest.CompanyInfo); err != nil {
-		// return err
-		WriteJSON(w, http.StatusBadRequest, "bad bad 1")
+	// Store company info
+	if err := h.store.SetCompanyInfo(
+		createCompanyRequest.CompanyInfo,
+		createCompanyRequest.SendSms,
+		createCompanyRequest.Action); err != nil {
+		// Consider rolling back the company creation here
+		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
+		return
 	}
 
-	WriteJSON(w, http.StatusOK, createCompanyRequest)
+	WriteJSON(w, http.StatusCreated, createCompanyRequest)
+}
+
+// Validation helper
+func validateCreateCompanyRequest(req *types.CreateCompanyReq) error {
+	if req.Company.CmpName == "" {
+		return fmt.Errorf("company name is required")
+	}
+	if req.Company.Duration <= 0 {
+		return fmt.Errorf("duration must be positive")
+	}
+	// Add more validation as needed
+	return nil
 }
 
 // Get /account /companies?page=1&pageSize=10

@@ -43,17 +43,17 @@ type ARPULimit struct {
 type CompanyInfo struct {
 	CompanyID int `json:"cmp_id"`
 
-	PhoneType        BaseFilter   `json:"phoneType"` //тип номеров
-	Trpl             BaseFilter   `json:"trpl"` //по тарифу
-	BalanceLimits    BalanceLimit `json:"balanceLimits"` //по балансу
-	SubscriberStatus BaseFilter   `json:"subscriberStatus"` //По статусу абонента
-	DeviceType       int          `json:"deviceType"` //По дивайсу ОС
-	PackSpent        TrafficSpent `json:"packSpent"` //По использованию мегабайтов
-	ARPULimits       ARPULimit    `json:"arpuLimits"` //По арпу
-	Region           BaseFilter   `json:"region"` //По активным услугам
-	SimDate          time.Time    `json:"start"` //По новому подключению симкарты
-	Service          BaseFilter   `json:"service"` //По активным услугам
-	WheelUsage       bool         `json:"usingWheel"` //По использованию колеса подарков
+	PhoneType        []BaseFilter `json:"phoneType"`        //тип номеров
+	Trpl             []BaseFilter `json:"trpl"`             //по тарифу
+	BalanceLimits    BalanceLimit `json:"balanceLimits"`    //по балансу
+	SubscriberStatus []BaseFilter `json:"subscriberStatus"` //По статусу абонента
+	DeviceType       int          `json:"deviceType"`       //По дивайсу ОС
+	PackSpent        TrafficSpent `json:"packSpent"`        //По использованию мегабайтов
+	ARPULimits       ARPULimit    `json:"arpuLimits"`       //По арпу
+	Region           []BaseFilter `json:"region"`           //По активным услугам
+	SimDate          time.Time    `json:"start"`            //По новому подключению симкарты
+	Service          []BaseFilter `json:"service"`          //По активным услугам
+	WheelUsage       bool         `json:"usingWheel"`       //По использованию колеса подарков
 }
 
 type TextType struct {
@@ -62,21 +62,23 @@ type TextType struct {
 	Eng string `json:"eng"`
 }
 
-type CompanySmsBefore struct {
-	SmsText    TextType   `json:"smsText"`
-	SmsDay     int        `json:"remiderDay"`
-	SmsDayText BaseFilter `json:"remiderText"`
+type SmsBefore struct {
+	SmsText      TextType `json:"smsText"`
+	SmsDay       int      `json:"remiderDay"`
+	SmsTextRemid TextType `json:"remiderText"`
 }
 
-type CompanySmsAfter struct {
+type CompanyAction struct {
 	Action BaseFilter `json:"action"`
 	Sms    TextType   `json:"smsRemider"`
 	Prize  BaseFilter `json:"prize"`
 }
 
 type CreateCompanyReq struct {
-	Company     Company     `json:"company"`
-	CompanyInfo CompanyInfo `json:"companyInfo"`
+	Company     Company       `json:"company"`
+	CompanyInfo CompanyInfo   `json:"companyInfo"`
+	SendSms     SmsBefore     `json:"smsInfo"`
+	Action      CompanyAction `json:"keyAction"`
 }
 
 type CompanyDetail struct {
