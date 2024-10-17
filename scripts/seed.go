@@ -49,39 +49,43 @@ func main() {
     fmt.Println("Company repetition seeded successfully!")
 }
 
+
 func seedCompany(db *sql.DB) error {
     query := `
         INSERT INTO company (
             cmp_name,
+            cmp_description,
             navi_user,
             query_id,
             start_time,
             duration,
             repetition
-        ) VALUES ($1, $2, $3, $4, $5, $6)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     `
 
     // Sample company names and users
     companies := []struct {
         name     string
+        desc     string
         naviUser string
     }{
-        {"Mk <<Tech Solutions>>", "Mr Seedr"},
-        {"Mk <<Digital Innovation>>", "Mr Seedr"},
-        {"Mk <<Smart Systems>>", "Mr Seedr"},
-        {"Mk <<Cloud Computing>>", "Mr Seedr"},
-        {"Mk <<Data Analytics>>", "Mr Seedr"},
-        {"Mk <<Cyber Security>>", "Mr Seedr"},
-        {"Mk <<Web Services>>", "Mr Seedr"},
-        {"Mk <<Mobile Solutions>>", "Mr Seedr"},
-        {"Mk <<AI Systems>>", "Mr Seedr"},
-        {"Mk <<IoT Platform>>", "Mr Seedr"},
+        {"Mk <<Tech Solutions>>", "Описание  1","Mr Seedr"},
+        {"Mk <<Digital Innovation>>", "Описание 2","Mr Seedr"},
+        {"Mk <<Smart Systems>>", "Описание 3","Mr Seedr"},
+        {"Mk <<Cloud Computing>>", "Описание 4","Mr Seedr"},
+        {"Mk <<Data Analytics>>", "Описание 5","Mr Seedr"},
+        {"Mk <<Cyber Security>>", "Описание 6","Mr Seedr"},
+        {"Mk <<Web Services>>", "Описание 7","Mr Seedr"},
+        {"Mk <<Mobile Solutions>>", "Описание 8","Mr Seedr"},
+        {"Mk <<AI Systems>>", "Описание 9","Mr Seedr"},
+        {"Mk <<IoT Platform>>", "Описание 10","Mr Seedr"},
     }
 
     baseTime := time.Now()
     for i, company := range companies {
         _, err := db.Exec(query,
             company.name,
+            company.desc,
             company.naviUser,
             fmt.Sprintf("QID-%d", i+1),  // Unique query ID
             baseTime.Add(time.Duration(i*24)*time.Hour), // Staggered start times
@@ -92,7 +96,6 @@ func seedCompany(db *sql.DB) error {
             return fmt.Errorf("failed to insert company record: %v", err)
         }
     }
-
     return nil
 }
 

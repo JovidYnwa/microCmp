@@ -239,3 +239,18 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo) error {
 
 	return nil
 }
+
+func (s *PgCompanyStore) GetCompanyByID(comID int) (*types.PaginatedResponse, error) {
+	query := `SELECT c.id, c.cmp_name, c.start_time, c.duration, c.repetition
+	FROM company_repetion c
+	ORDER BY id 
+	LIMIT $1 OFFSET $2`
+	
+	rows, err := s.db.Query(query)
+	if err != nil {
+		fmt.Println("gaga")
+	}
+	defer rows.Close()
+
+	return nil, nil
+}
