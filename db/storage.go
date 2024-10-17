@@ -16,7 +16,7 @@ type CompanyStore interface {
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
-	GetCompanyByID(comID int) (*types.PaginatedResponse, error)
+	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
 
 	SetCompany(c types.Company) (*int, error)
 	SetCompanyInfo(info types.CompanyInfo, sms types.SmsBefore, action types.CompanyAction) error
@@ -127,7 +127,7 @@ func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
 	// Count total number of companies
 	var totalCount int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM company").Scan(&totalCount)
+	err := s.db.QueryRow("select count(c.id) from company c").Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
@@ -137,29 +137,39 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 	offset := (page - 1) * pageSize
 
 	// Query for paginated results
-	query := `SELECT c.id, c.cmp_name, c.start_time, c.duration, c.repetition
-              FROM company c
-              ORDER BY id 
-              LIMIT $1 OFFSET $2`
+	query := `
+		select 
+			c.id,
+			c.cmp_name, 
+			count(cr.company_id) as cmp_amount, 
+			sum(cr.sub_amount) as subs_amount, 
+			avg(cr.efficiency)*100 as effiency
+		from company_repetion cr
+		join company c 
+		on cr.company_id = c.id
+		group by c.id
+		order by 4 desc
+		LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	companies := []*types.Company{}
+	companies := []*types.CompanyResp{}
 	for rows.Next() {
-		cmp := new(types.Company)
+		cmp := new(types.CompanyResp)
 		err := rows.Scan(
 			&cmp.ID,
-			&cmp.CmpName,
-			&cmp.StartTime,
-			&cmp.Duration,
-			&cmp.Repetition,
+			&cmp.Name,
+			&cmp.CmpLunched,
+			&cmp.SubsAmont,
+			&cmp.Efficiency,
 		)
 		if err != nil {
 			return nil, err
 		}
+
 		companies = append(companies, cmp)
 	}
 
@@ -274,17 +284,35 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBef
 	return nil
 }
 
-func (s *PgCompanyStore) GetCompanyByID(comID int) (*types.PaginatedResponse, error) {
-	query := `SELECT c.id, c.cmp_name, c.start_time, c.duration, c.repetition
-	FROM company_repetion c
-	ORDER BY id 
-	LIMIT $1 OFFSET $2`
+func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error) {
+	query := `
+	select 
+		(c.efficiency)*100 as eff, 
+		c.sub_amount, 
+		c.start_date, 
+		c.end_date
+	from company_repetion c where c.company_id = $1`
 
-	rows, err := s.db.Query(query)
+	rows, err := s.db.Query(query, comID)
 	if err != nil {
-		fmt.Println("gaga")
+		return nil, err
 	}
 	defer rows.Close()
+	companies := []*types.CompanyDetailResp{}
+	for rows.Next() {
+		cmp := new(types.CompanyDetailResp)
+		err := rows.Scan(
+			&cmp.Efficiency,
+			&cmp.SubsAmount,
+			&cmp.StartDate,
+			&cmp.EndDate,
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	return nil, nil
+		companies = append(companies, cmp)
+	}
+
+	return companies, nil
 }

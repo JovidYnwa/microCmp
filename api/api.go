@@ -317,14 +317,20 @@ func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Reque
 	WriteJSON(w, http.StatusOK, paginatedResponse)
 }
 
-// Get /companies?id=1
 func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.Request) {
-	companyID := mux.Vars(r)["id"]
+	companyIDStr := mux.Vars(r)["id"]
 
-	// s, err := h.store.GetCompanies(page, pageSize)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	WriteJSON(w, http.StatusOK, paginatedResponse)
-	// }
-	WriteJSON(w, http.StatusOK, "dsalkjfhakjdshf"+companyID)
+	companyID, err := strconv.Atoi(companyIDStr)
+	if err != nil {
+		WriteJSON(w, http.StatusBadRequest, "Invalid company ID")
+		return
+	}
+
+	s, err := h.store.GetCompanyByID(companyID)
+	if err != nil {
+		WriteJSON(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, s)
 }

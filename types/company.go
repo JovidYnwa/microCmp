@@ -87,3 +87,18 @@ type CompanyDetail struct {
 	StartDate        time.Time `json:"startDate"`
 	EndDate          time.Time `json:"endDate"`
 }
+
+type CompanyResp struct {
+	ID         int     `json:"id"`
+	Name       string  `json:"name"`
+	CmpLunched int     `json:"cmpLunched"`
+	SubsAmont  int     `json:"subAmount"`
+	Efficiency float64 `json:"efficiency"`
+}
+
+type CompanyDetailResp struct {
+	Efficiency float64   `json:"efficiency"`
+	SubsAmount int       `json:"subAmount"`
+	StartDate  time.Time `json:"startDate"`
+	EndDate    time.Time `json:"EndDate"`
+}
