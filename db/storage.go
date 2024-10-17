@@ -176,18 +176,20 @@ func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 
 	query := `
 		INSERT INTO company (
-			cmp_name, 
+			cmp_name,
+			cmp_description,
 			navi_user, 
-			query_id,    -- This was likely missing a value
+			query_id,
 			start_time,
 			duration, 
 			repetition
-		) VALUES ($1, $2, $3, $4, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`
 
 	err := s.db.QueryRow(
 		query,
-		c.CmpName,    
+		c.CmpName,
+		c.CmpDesc,
 		c.NaviUser,   
 		c.DWHID,    
 		c.StartTime,  

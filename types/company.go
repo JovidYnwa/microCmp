@@ -15,6 +15,7 @@ type PaginatedResponse struct {
 type Company struct {
 	ID         int       `json:"id"`
 	CmpName    string    `json:"name"`
+	CmpDesc    string    `json:"desc"`
 	NaviUser   string    `json:"naviUser"`
 	Repition   int       `json:"repition"`
 	StartTime  time.Time `json:"startTime"`
