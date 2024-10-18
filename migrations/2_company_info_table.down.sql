@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS company_info;
+DROP TABLE IF EXISTS company;

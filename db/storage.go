@@ -286,12 +286,7 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBef
 
 func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error) {
 	query := `
-	select 
-		(c.efficiency)*100 as eff, 
-		c.sub_amount, 
-		c.start_date, 
-		c.end_date
-	from company_repetion c where c.company_id = $1`
+ `
 
 	rows, err := s.db.Query(query, comID)
 	if err != nil {
