@@ -13,7 +13,6 @@ type PaginatedResponse struct {
 }
 
 type Company struct {
-	ID         int       `json:"id"`
 	CmpName    string    `json:"name"`
 	CmpDesc    string    `json:"desc"`
 	NaviUser   string    `json:"naviUser"`
@@ -21,7 +20,6 @@ type Company struct {
 	StartTime  time.Time `json:"startTime"`
 	Duration   int       `json:"durationDay"`
 	Repetition float64   `json:"repetion"`
-	DWHID      string
 }
 
 type TrafficSpent struct {
@@ -41,8 +39,6 @@ type ARPULimit struct {
 }
 
 type CompanyInfo struct {
-	CompanyID int `json:"cmp_id"`
-
 	PhoneType        []BaseFilter `json:"phoneType"`        //тип номеров
 	Trpl             []BaseFilter `json:"trpl"`             //по тарифу
 	BalanceLimits    BalanceLimit `json:"balanceLimits"`    //по балансу
@@ -75,6 +71,7 @@ type CompanyAction struct {
 }
 
 type CreateCompanyReq struct {
+	CompanyType int           `json:"companyType"`
 	Company     Company       `json:"company"`
 	CompanyInfo CompanyInfo   `json:"companyInfo"`
 	SendSms     SmsBefore     `json:"smsInfo"`
@@ -86,6 +83,13 @@ type CompanyDetail struct {
 	SubscriberAmount int64     `json:"subsAmount"`
 	StartDate        time.Time `json:"startDate"`
 	EndDate          time.Time `json:"endDate"`
+}
+
+type CompanyTypeResp struct {
+	Name       string  `json:"name"`
+	CmpLunched int     `json:"cmpLunched"`
+	SubsAmont  int     `json:"subAmount"`
+	Efficiency float64 `json:"efficiency"`
 }
 
 type CompanyResp struct {

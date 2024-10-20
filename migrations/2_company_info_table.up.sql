@@ -1,11 +1,9 @@
-CREATE TABLE IF NOT EXISTS COMPANY (
+CREATE TABLE IF NOT EXISTS company (
     id SERIAL PRIMARY KEY,
     company_type_id INTEGER NOT NULL,
-    cmp_desc JSONB, --name e.t.c
-    cmp_filter JSONB,
-    sms_data JSONB,
-    action_data JSONB,
-    FOREIGN KEY (company_id) REFERENCES company_type(id) ON DELETE CASCADE
+    cmp_desc JSONB,  -- company description and other details
+    cmp_filter JSONB, -- company filters like phoneType, balanceLimits
+    sms_data JSONB, -- SMS related data
+    action_data JSONB, -- action-related data
+    FOREIGN KEY (company_type_id) REFERENCES company_type(id) ON DELETE CASCADE
 );
-
-    -- query_id VARCHAR(255) NOT NULL,

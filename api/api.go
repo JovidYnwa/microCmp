@@ -262,27 +262,33 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Create company
-	cmpID, err := h.store.SetCompany(createCompanyRequest.Company)
-	if err != nil {
-		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create company: " + err.Error()})
-		return
-	}
-
-	// Update CompanyInfo with the new company ID
-	createCompanyRequest.CompanyInfo.CompanyID = *cmpID
-
 	// Store company info
-	if err := h.store.SetCompanyInfo(
-		createCompanyRequest.CompanyInfo,
-		createCompanyRequest.SendSms,
-		createCompanyRequest.Action); err != nil {
+	if err := h.store.SetCompany(createCompanyRequest); err != nil {
 		// Consider rolling back the company creation here
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
 		return
 	}
 
 	WriteJSON(w, http.StatusCreated, createCompanyRequest)
+}
+
+func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters for pagination
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10 // Default page size
+	}
+
+	paginatedResponse, err := h.store.GetCompanyType(page, pageSize)
+	if err != nil {
+		fmt.Println(err)
+		WriteJSON(w, http.StatusOK, paginatedResponse)
+	}
+	WriteJSON(w, http.StatusOK, paginatedResponse)
 }
 
 // Validation helper
@@ -309,7 +315,7 @@ func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Reque
 		pageSize = 10 // Default page size
 	}
 
-	paginatedResponse, err := h.store.GetCompanies(page, pageSize)
+	paginatedResponse, err := h.store.GetCompanyType(page, pageSize)
 	if err != nil {
 		fmt.Println(err)
 		WriteJSON(w, http.StatusOK, paginatedResponse)

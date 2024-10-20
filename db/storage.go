@@ -15,11 +15,13 @@ type CompanyStore interface {
 	UpdateAccount(*types.Account) error
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
-	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
+
+	GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error)
+	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)
 	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
 
-	SetCompany(c types.Company) (*int, error)
-	SetCompanyInfo(info types.CompanyInfo, sms types.SmsBefore, action types.CompanyAction) error
+	SetCompanyType(c types.Company) (*int, error)
+	SetCompany(cmp *types.CreateCompanyReq) error
 }
 
 type PgCompanyStore struct {
@@ -124,10 +126,14 @@ func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 	return account, err
 }
 
-func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error) {
 	// Count total number of companies
 	var totalCount int
-	err := s.db.QueryRow("select count(c.id) from company c").Scan(&totalCount)
+	err := s.db.QueryRow(`
+	    SELECT COUNT(DISTINCT ct.id) 
+        FROM company_type ct 
+        JOIN company c ON c.company_type_id = ct.id 
+        JOIN company_repetion cr ON cr.company_id = c.id`).Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
@@ -138,17 +144,17 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 
 	// Query for paginated results
 	query := `
-		select 
-			c.id,
-			c.cmp_name, 
-			count(cr.company_id) as cmp_amount, 
-			sum(cr.sub_amount) as subs_amount, 
-			avg(cr.efficiency)*100 as effiency
-		from company_repetion cr
-		join company c 
-		on cr.company_id = c.id
-		group by c.id
-		order by 4 desc
+	SELECT 
+		ct.cmp_name,
+		COUNT(cr.id) AS repetition_count,
+		SUM(cr.sub_amount) AS total_sub_amount,
+		ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage
+	FROM 
+		company_repetion cr
+		JOIN company c ON cr.company_id = c.id
+		JOIN company_type ct ON c.company_type_id = ct.id
+	GROUP BY 
+		ct.id, ct.cmp_name
 		LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
@@ -156,11 +162,10 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 	}
 	defer rows.Close()
 
-	companies := []*types.CompanyResp{}
+	companies := []*types.CompanyTypeResp{}
 	for rows.Next() {
-		cmp := new(types.CompanyResp)
+		cmp := new(types.CompanyTypeResp)
 		err := rows.Scan(
-			&cmp.ID,
 			&cmp.Name,
 			&cmp.CmpLunched,
 			&cmp.SubsAmont,
@@ -182,7 +187,76 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 	}, nil
 }
 
-func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
+func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedResponse, error) {
+	// Count total number of companies
+	var totalCount int
+	err := s.db.QueryRow(`
+	    select count(company_id)  from company_repetion group by company_id`).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate pagination values
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	offset := (page - 1) * pageSize
+
+	// Query for paginated results
+	query := `
+		SELECT 
+			cr.company_id,
+			c.cmp_desc ->> 'name' AS name,
+			c.cmp_desc ->> 'desc' AS description,  
+			ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage,
+			SUM(cr.sub_amount) AS total_sub_amount,  
+			TO_CHAR((c.cmp_desc ->> 'startTime')::TIMESTAMP, 'DD.MM.YYYY') AS start_date,
+			TO_CHAR(
+				(c.cmp_desc ->> 'startTime')::TIMESTAMP + 
+				(c.cmp_desc ->> 'durationDay')::INTEGER * INTERVAL '1 day', 
+				'DD.MM.YYYY'
+			) AS end_date  
+		FROM 
+			company_repetion cr
+		JOIN 
+			company c ON cr.company_id = c.id 
+		GROUP BY 
+			cr.company_id, 
+			c.cmp_desc ->> 'name', 
+			c.cmp_desc ->> 'desc', 
+			(c.cmp_desc ->> 'startTime')::TIMESTAMP,  
+			(c.cmp_desc ->> 'durationDay')::INTEGER
+		LIMIT $1 OFFSET $2`
+	rows, err := s.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	companies := []*types.CompanyTypeResp{}
+	for rows.Next() {
+		cmp := new(types.CompanyTypeResp)
+		err := rows.Scan(
+			&cmp.Name,
+			&cmp.CmpLunched,
+			&cmp.SubsAmont,
+			&cmp.Efficiency,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		companies = append(companies, cmp)
+	}
+
+	return &types.PaginatedResponse{
+		TotalCount:  totalCount,
+		TotalPages:  totalPages,
+		CurrentPage: page,
+		PageSize:    pageSize,
+		Data:        companies,
+	}, nil
+}
+
+func (s *PgCompanyStore) SetCompanyType(c types.Company) (*int, error) {
 	var compId int
 
 	query := `
@@ -202,7 +276,6 @@ func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 		c.CmpName,
 		c.CmpDesc,
 		c.NaviUser,
-		c.DWHID,
 		c.StartTime,
 		c.Duration,
 		c.Repetition,
@@ -214,28 +287,45 @@ func (s *PgCompanyStore) SetCompany(c types.Company) (*int, error) {
 	return &compId, nil
 }
 
-func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBefore, action types.CompanyAction) error {
+func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 	query := `
-        INSERT INTO company_info (
-            company_id,
+        INSERT INTO company (
+            company_type_id,
+			cmp_desc,
             cmp_filter,
 			sms_data,
 			action_data
-        ) VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb)` // Note the ::jsonb type cast
+        ) VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::json)` // Note the ::jsonb type cast
+
+	// Create a map for the filter data
+	cmpData := map[string]interface{}{
+		"name":        cmp.Company.CmpName,
+		"desc":        cmp.Company.CmpDesc,
+		"naviUser":    cmp.Company.NaviUser, //Take form token letter on
+		"repition":    cmp.Company.Repition,
+		"startTime":   cmp.Company.StartTime,
+		"durationDay": cmp.Company.Duration,
+	}
+
+	// Marshal the map to JSON
+	cmpJsonData, err := json.Marshal(cmpData)
+	if err != nil {
+		return fmt.Errorf("error marshaling filter data: %v", err)
+	}
 
 	// Create a map for the filter data
 	filterData := map[string]interface{}{
-		"phoneType":        info.PhoneType,
-		"trpl":             info.Trpl,
-		"balanceLimits":    info.BalanceLimits,
-		"subscriberStatus": info.SubscriberStatus,
-		"deviceType":       info.DeviceType,
-		"packSpent":        info.PackSpent,
-		"arpuLimits":       info.ARPULimits,
-		"region":           info.Region,
-		"start":            info.SimDate,
-		"service":          info.Service,
-		"usingWheel":       info.WheelUsage,
+		"phoneType":        cmp.CompanyInfo.PhoneType,
+		"trpl":             cmp.CompanyInfo.Trpl,
+		"balanceLimits":    cmp.CompanyInfo.BalanceLimits,
+		"subscriberStatus": cmp.CompanyInfo.SubscriberStatus,
+		"deviceType":       cmp.CompanyInfo.DeviceType,
+		"packSpent":        cmp.CompanyInfo.PackSpent,
+		"arpuLimits":       cmp.CompanyInfo.ARPULimits,
+		"region":           cmp.CompanyInfo.Region,
+		"start":            cmp.CompanyInfo.SimDate,
+		"service":          cmp.CompanyInfo.Service,
+		"usingWheel":       cmp.CompanyInfo.WheelUsage,
 	}
 
 	// Marshal the map to JSON
@@ -246,9 +336,9 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBef
 
 	// Create a map for the filter data
 	sendSmsData := map[string]interface{}{
-		"smsText":      sms.SmsText,
-		"smsDay":       sms.SmsDay,
-		"smsTextRemid": sms.SmsTextRemid,
+		"smsText":      cmp.SendSms.SmsText,
+		"smsDay":       cmp.SendSms.SmsDay,
+		"smsTextRemid": cmp.SendSms.SmsTextRemid,
 	}
 
 	// Marshal the map to JSON
@@ -258,9 +348,9 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBef
 	}
 
 	actionSmsData := map[string]interface{}{
-		"action":  action.Action,
-		"smsText": action.Sms,
-		"prize":   action.Prize,
+		"action":  cmp.Action.Action,
+		"smsText": cmp.Action.Sms,
+		"prize":   cmp.Action.Prize,
 	}
 
 	// Marshal the map to JSON
@@ -272,7 +362,8 @@ func (s *PgCompanyStore) SetCompanyInfo(info types.CompanyInfo, sms types.SmsBef
 	// Use sql.RawBytes to pass JSON data
 	_, err = s.db.Exec(
 		query,
-		info.CompanyID,
+		cmp.CompanyType,
+		json.RawMessage(cmpJsonData),    // cmp data
 		json.RawMessage(filterJsonData), // Convert to RawMessage
 		json.RawMessage(sendSmsJsonData),
 		json.RawMessage(actionSmsJsonData),

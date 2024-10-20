@@ -35,15 +35,15 @@ func main() {
 
 	fmt.Println("Successfully connected to the database!")
 
-	// if err := seedCompany(db); err != nil {
+	// if err := seedCompanyType(db); err != nil {
 	// 	log.Fatalf("Failed to seed company: %v", err)
 	// }
 	// fmt.Println("Company table seeded successfully!")
 
-	if err := seedCompanyInfo(db); err != nil {
-		log.Fatalf("Failed to seed company_info: %v", err)
-	}
-	fmt.Println("Company info seeded successfully!")
+	// if err := seedCompany(db); err != nil {
+	// 	log.Fatalf("Failed to seed company_info: %v", err)
+	// }
+	// fmt.Println("Company info seeded successfully!")
 
 	if err := seedCompanyRepetition(db); err != nil {
 		log.Fatalf("Failed to seed company_repetition: %v", err)
@@ -51,42 +51,29 @@ func main() {
 	fmt.Println("Company repetition seeded successfully!")
 }
 
-func seedCompany(db *sql.DB) error {
+func seedCompanyType(db *sql.DB) error {
 	query := `
-        INSERT INTO company (
+        INSERT INTO company_type(
             cmp_name,
-            cmp_description,
-            navi_user,
-            query_id,
-            start_time,
-            duration,
-            repetition
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            navi_user
+        ) VALUES ($1, $2)
     `
 
 	// Sample company names and users
 	companies := []struct {
 		name     string
-		desc     string
 		naviUser string
 	}{
-		{"Mk <<Tech Solutions>>", "Описание  1", "Mr Seedr"},
-		{"Mk <<Digital Innovation>>", "Описание 2", "Mr Seedr"},
-		{"Mk <<Smart Systems>>", "Описание 3", "Mr Seedr"},
-		{"Mk <<Cloud Computing>>", "Описание 4", "Mr Seedr"},
-		{"Mk <<Data Analytics>>", "Описание 5", "Mr Seedr"},
+		{"Mk <<No Pay", "Mr Seedr"},
+		{"Mk <<Must Pay>>", "Mr Seedr"},
+		{"Mk <<Suffer>>", "Mr Seedr"},
+
 	}
 
-	baseTime := time.Now()
-	for i, company := range companies {
+	for _, company := range companies {
 		_, err := db.Exec(query,
 			company.name,
-			company.desc,
 			company.naviUser,
-			fmt.Sprintf("QID-%d", i+1), // Unique query ID
-			baseTime.Add(time.Duration(i*24)*time.Hour), // Staggered start times
-			10+i, // Different durations
-			5+i,  // Different repetitions
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert company record: %v", err)
@@ -95,15 +82,16 @@ func seedCompany(db *sql.DB) error {
 	return nil
 }
 
-func seedCompanyInfo(db *sql.DB) error {
+func seedCompany(db *sql.DB) error {
 	query := `
-        INSERT INTO company_info (
-            company_id,
+        INSERT INTO company (
+            company_type_id,
+            cmp_desc,
             cmp_filter,
             sms_data,
             action_data
         ) VALUES (
-            $1, $2, $3, $4
+            $1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb
         )
     `
 
@@ -150,7 +138,20 @@ func seedCompanyInfo(db *sql.DB) error {
 		Prize:  types.BaseFilter{ID: 2, Name: "Free Data"},
 	}
 
+	// Data for cmp_desc
+	cmpDesc := map[string]interface{}{
+		"desc":       "Leading tech innovation company",
+		"name":       "Tech Innovators Ltd.2",
+		"repition":   3,
+		"startTime":  "2024-10-17T10:00:00Z",
+		"durationDay": 30,
+	}
+
 	// Serialize the JSON fields
+	cmpDescJSON, err := json.Marshal(cmpDesc)
+	if err != nil {
+		return fmt.Errorf("failed to marshal cmp_desc: %v", err)
+	}
 	cmpFilterJSON, err := json.Marshal(cmpFilter)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cmp_filter: %v", err)
@@ -164,44 +165,33 @@ func seedCompanyInfo(db *sql.DB) error {
 		return fmt.Errorf("failed to marshal action_data: %v", err)
 	}
 
-	// Get the company IDs
-	rows, err := db.Query("SELECT id FROM company ORDER BY id LIMIT 10")
+	// Get the company type IDs
+	rows, err := db.Query("SELECT id FROM company_type ORDER BY id LIMIT 10")
 	if err != nil {
-		return fmt.Errorf("failed to get company IDs: %v", err)
+		return fmt.Errorf("failed to get company_type IDs: %v", err)
 	}
 	defer rows.Close()
 
-	var companyIDs []int
+	var companyTypeIDs []int
 	for rows.Next() {
 		var id int
 		if err := rows.Scan(&id); err != nil {
-			return fmt.Errorf("failed to scan company ID: %v", err)
+			return fmt.Errorf("failed to scan company_type ID: %v", err)
 		}
-		companyIDs = append(companyIDs, id)
+		companyTypeIDs = append(companyTypeIDs, id)
 	}
 
-	// Insert the data into the company_info table
-	for _, companyID := range companyIDs {
-		// Check if the record already exists
-		var exists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM company_info WHERE company_id = $1)", companyID).Scan(&exists)
+	// Insert the data into the company table
+	for _, companyTypeID := range companyTypeIDs {
+		_, err = db.Exec(query, companyTypeID, cmpDescJSON, cmpFilterJSON, smsDataJSON, actionDataJSON)
 		if err != nil {
-			return fmt.Errorf("failed to check existence of company_info record: %v", err)
-		}
-
-		if exists {
-			fmt.Printf("Skipping existing company_info record for company_id: %d\n", companyID)
-			continue // Skip this record if it already exists
-		}
-
-		_, err = db.Exec(query, companyID, cmpFilterJSON, smsDataJSON, actionDataJSON)
-		if err != nil {
-			return fmt.Errorf("failed to insert company_info record: %v", err)
+			return fmt.Errorf("failed to insert company record: %v", err)
 		}
 	}
 
 	return nil
 }
+
 
 func seedCompanyRepetition(db *sql.DB) error {
 	query := `

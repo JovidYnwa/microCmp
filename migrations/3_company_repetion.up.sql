@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS company_repetion (
     sub_amount NUMERIC(7),
     start_date TIMESTAMP,
     end_date TIMESTAMP,
-    FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+    FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE  -- Changed to reference company_type
 );
