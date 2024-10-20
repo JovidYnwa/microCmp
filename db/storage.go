@@ -168,7 +168,7 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 		err := rows.Scan(
 			&cmp.Name,
 			&cmp.CmpLunched,
-			&cmp.SubsAmont,
+			&cmp.SubsAmount,
 			&cmp.Efficiency,
 		)
 		if err != nil {
@@ -191,7 +191,7 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 	// Count total number of companies
 	var totalCount int
 	err := s.db.QueryRow(`
-	    select count(company_id)  from company_repetion group by company_id`).Scan(&totalCount)
+	    select count(company_id) from company_repetion group by company_id`).Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
@@ -231,14 +231,17 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 	}
 	defer rows.Close()
 
-	companies := []*types.CompanyTypeResp{}
+	companies := []*types.CompanyResp{}
 	for rows.Next() {
-		cmp := new(types.CompanyTypeResp)
+		cmp := new(types.CompanyResp)
 		err := rows.Scan(
+			&cmp.ID,
 			&cmp.Name,
-			&cmp.CmpLunched,
-			&cmp.SubsAmont,
+			&cmp.CmpDesc,
 			&cmp.Efficiency,
+			&cmp.SubsAmount,
+			&cmp.StartDate,
+			&cmp.EndDate,
 		)
 		if err != nil {
 			return nil, err

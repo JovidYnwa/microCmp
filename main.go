@@ -77,6 +77,8 @@ func main() {
 
 	router.HandleFunc("/company_type", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany)
+	router.HandleFunc("/company1", companyHandler.HandleGetCompany)
+
 	router.HandleFunc("/company/{id:[0-9]+}", companyHandler.HandleGetCompanyDetail)
 
 	c := cors.New(cors.Options{

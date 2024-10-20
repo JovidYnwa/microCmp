@@ -61,6 +61,15 @@ func (s *CompanyHandler) handleAccount(w http.ResponseWriter, r *http.Request) e
 	return fmt.Errorf("method is not allowed %s", r.Method)
 }
 
+// func (s *CompanyHandler) handleCompany(w http.ResponseWriter, r *http.Request) error {
+// 	if r.Method == "GET" {
+// 		return s.handleGetAccount(w, r)
+// 	} else if r.Method == "POST" {
+// 		return s.handleCreateAccount(w, r)
+// 	}
+// 	return fmt.Errorf("method is not allowed %s", r.Method)
+// }
+
 func permissionDenied(w http.ResponseWriter) {
 	WriteJSON(w, http.StatusForbidden, ApiError{Error: "permission denied"})
 }
@@ -283,7 +292,7 @@ func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request
 		pageSize = 10 // Default page size
 	}
 
-	paginatedResponse, err := h.store.GetCompanyType(page, pageSize)
+	paginatedResponse, err := h.store.GetCompany(page, pageSize)
 	if err != nil {
 		fmt.Println(err)
 		WriteJSON(w, http.StatusOK, paginatedResponse)

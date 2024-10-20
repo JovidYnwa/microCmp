@@ -88,16 +88,20 @@ type CompanyDetail struct {
 type CompanyTypeResp struct {
 	Name       string  `json:"name"`
 	CmpLunched int     `json:"cmpLunched"`
-	SubsAmont  int     `json:"subAmount"`
+	SubsAmount int     `json:"subAmount"`
 	Efficiency float64 `json:"efficiency"`
 }
 
 type CompanyResp struct {
 	ID         int     `json:"id"`
+	NaviUser   string  `json:"naviUser"`
+	CmpDesc    string  `json:"desc"`
 	Name       string  `json:"name"`
 	CmpLunched int     `json:"cmpLunched"`
-	SubsAmont  int     `json:"subAmount"`
+	SubsAmount int     `json:"subAmount"`
 	Efficiency float64 `json:"efficiency"`
+	StartDate  string  `json:"startDate"`
+	EndDate    string  `json:"endDate"`
 }
 
 type CompanyDetailResp struct {
