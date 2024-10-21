@@ -75,9 +75,9 @@ func main() {
 	// router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
 	// router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
 
-	router.HandleFunc("/company_type", companyHandler.HandleGetCompanies)
-	router.HandleFunc("/company", companyHandler.HandleCreateCompany)
-	router.HandleFunc("/company1", companyHandler.HandleGetCompany)
+	router.HandleFunc("/company-type", companyHandler.HandleGetCompanies)
+	router.HandleFunc("/company", companyHandler.HandleCreateCompany) //Post
+	router.HandleFunc("/companies/{type_id:[0-9]+}", companyHandler.HandleGetCompany)
 
 	router.HandleFunc("/company/{id:[0-9]+}", companyHandler.HandleGetCompanyDetail)
 
@@ -92,16 +92,4 @@ func main() {
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)
-
-	// store, err := db.NewPostgresStore()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// if err := store.Init(); err != nil {
-	// 	log.Fatalf("table was not created, %v", err)
-	// }
-
-	// server := api.NewCompanyHandler(":3001", store)
-	// server.Run()
 }

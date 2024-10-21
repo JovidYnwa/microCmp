@@ -130,10 +130,7 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 	// Count total number of companies
 	var totalCount int
 	err := s.db.QueryRow(`
-	    SELECT COUNT(DISTINCT ct.id) 
-        FROM company_type ct 
-        JOIN company c ON c.company_type_id = ct.id 
-        JOIN company_repetion cr ON cr.company_id = c.id`).Scan(&totalCount)
+	    select count(id) from company_type`).Scan(&totalCount)
 	if err != nil {
 		return nil, err
 	}
@@ -144,17 +141,19 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 
 	// Query for paginated results
 	query := `
-	SELECT 
-		ct.cmp_name,
-		COUNT(cr.id) AS repetition_count,
-		SUM(cr.sub_amount) AS total_sub_amount,
-		ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage
-	FROM 
-		company_repetion cr
-		JOIN company c ON cr.company_id = c.id
-		JOIN company_type ct ON c.company_type_id = ct.id
-	GROUP BY 
-		ct.id, ct.cmp_name
+		SELECT 
+			ct.id,
+			ct.cmp_name,
+			COUNT(cr.id) AS repetition_count,
+			SUM(cr.sub_amount) AS total_sub_amount,
+			ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage
+		FROM 
+			company_repetion cr
+			JOIN company c ON cr.company_id = c.id
+			JOIN company_type ct ON c.company_type_id = ct.id
+		GROUP BY 
+			ct.id, ct.cmp_name
+		order by ct.id
 		LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
@@ -166,6 +165,7 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 	for rows.Next() {
 		cmp := new(types.CompanyTypeResp)
 		err := rows.Scan(
+			&cmp.ID,
 			&cmp.Name,
 			&cmp.CmpLunched,
 			&cmp.SubsAmount,
@@ -380,7 +380,14 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 
 func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error) {
 	query := `
- `
+		select cr.id,
+		cr.efficiency,
+		cr.sub_amount,
+		TO_CHAR(cr.start_date::TIMESTAMP, 'dd.mm.yyyy'),
+		TO_CHAR(cr.end_date::TIMESTAMP, 'dd.mm.yyyy')
+		from company_repetion cr
+		where cr.company_id = $1
+	`
 
 	rows, err := s.db.Query(query, comID)
 	if err != nil {
@@ -391,6 +398,7 @@ func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, 
 	for rows.Next() {
 		cmp := new(types.CompanyDetailResp)
 		err := rows.Scan(
+			&cmp.ID,
 			&cmp.Efficiency,
 			&cmp.SubsAmount,
 			&cmp.StartDate,
