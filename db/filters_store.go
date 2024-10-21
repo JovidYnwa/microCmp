@@ -13,6 +13,7 @@ type CompanyFilterStore interface {
 	GetRegions() ([]*types.BaseFilter, error)
 	GetSubsStatuses() ([]*types.BaseFilter, error)
 	GetServs() ([]*types.BaseFilter, error)
+	GetSimTypes() ([]*types.BaseFilter, error)
 }
 
 type DwhFilterStore struct {
@@ -26,8 +27,11 @@ func NewOracleMainScreenStore(db *sql.DB) *DwhFilterStore {
 }
 
 func (s *DwhFilterStore) GetTrpls() ([]*types.BaseFilter, error) {
-	query := `select c.trpl_id, c.trpl_name 
-				from CMS_USER.current_tp_names c`
+	query := `
+		select 
+			c.trpl_id, 
+			c.trpl_name 
+		from CMS_USER.current_tp_names c`
 
 	rows, err := s.db.Query(query)
 	if err != nil {
@@ -144,4 +148,33 @@ func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
 		resp = append(resp, &serv)
 	}
 	return resp, nil
+}
+
+func (s *DwhFilterStore) GetSimTypes() ([]*types.BaseFilter, error) {
+	query := `
+	select 
+       o.pht_id,
+       o.phone_type
+	from odsadmin.phone_type o 
+	where pht_id in (4,5,6,10,15,16,17,18)`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		fmt.Println("gaga")
+	}
+	defer rows.Close()
+
+	trpls := []*types.BaseFilter{}
+	for rows.Next() {
+		trpl := new(types.BaseFilter)
+		err := rows.Scan(
+			&trpl.ID,
+			&trpl.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+		trpls = append(trpls, trpl)
+	}
+	return trpls, nil
 }

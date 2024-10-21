@@ -52,3 +52,12 @@ func (h *CompanyFilterHandler) HandleServList(w http.ResponseWriter, r *http.Req
 	}
 	WriteJSON(w, 200, result)
 }
+
+func (h *CompanyFilterHandler) HandleSimStatus(w http.ResponseWriter, r *http.Request) {
+	result, err := h.filterStore.GetSimTypes()
+	if err != nil {
+		fmt.Printf("Trpls %s", err)
+		WriteJSON(w, 401, "smth bad happaned")
+	}
+	WriteJSON(w, 200, result)
+}
