@@ -75,7 +75,7 @@ func main() {
 	router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
 	router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
 	router.HandleFunc("/filter/sim/types", companyFilterHandler.HandleSimStatus)
-
+	router.HandleFunc("/filter/device/typs", companyFilterHandler.HandleDivceTypes)
 	router.HandleFunc("/company-type", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany) //Post
 	router.HandleFunc("/companies/{type_id:[0-9]+}", companyHandler.HandleGetCompany)

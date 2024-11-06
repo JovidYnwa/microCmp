@@ -61,3 +61,17 @@ func (h *CompanyFilterHandler) HandleSimStatus(w http.ResponseWriter, r *http.Re
 	}
 	WriteJSON(w, 200, result)
 }
+
+func (h *CompanyFilterHandler) HandleDivceTypes(w http.ResponseWriter, r *http.Request) {
+	result := []map[string]any{
+		{
+			"id": 1,
+			"name":"android",
+		},
+		{
+			"id": 2,
+			"name":"ios",
+		},
+	}
+	WriteJSON(w, 200, result)
+}
