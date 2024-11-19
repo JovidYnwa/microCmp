@@ -118,7 +118,9 @@ func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
 											o_result => :o_result,
 											o_err_msg => :o_err_msg,
 											o_error_position => :o_error_position); 
-		END;`
+											commit;
+		END;
+		`
 
 	_, err := s.db.Exec(cmdText,
 		inputIDVal,
