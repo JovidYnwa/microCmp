@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -40,15 +41,15 @@ func main() {
 	// }
 	// fmt.Println("Company table seeded successfully!")
 
-	// if err := seedCompany(db); err != nil {
-	// 	log.Fatalf("Failed to seed company_info: %v", err)
-	// }
-	// fmt.Println("Company info seeded successfully!")
-
-	if err := seedCompanyRepetition(db); err != nil {
-		log.Fatalf("Failed to seed company_repetition: %v", err)
+	if err := seedCompany(db); err != nil {
+		log.Fatalf("Failed to seed company_info: %v", err)
 	}
-	fmt.Println("Company repetition seeded successfully!")
+	fmt.Println("Company info seeded successfully!")
+
+	// if err := seedCompanyRepetition(db); err != nil {
+	// 	log.Fatalf("Failed to seed company_repetition: %v", err)
+	// }
+	// fmt.Println("Company repetition seeded successfully!")
 }
 
 func seedCompanyType(db *sql.DB) error {
@@ -67,7 +68,6 @@ func seedCompanyType(db *sql.DB) error {
 		{"Mk <<No Pay", "Mr Seedr"},
 		{"Mk <<Must Pay>>", "Mr Seedr"},
 		{"Mk <<Suffer>>", "Mr Seedr"},
-
 	}
 
 	for _, company := range companies {
@@ -86,21 +86,24 @@ func seedCompany(db *sql.DB) error {
 	query := `
         INSERT INTO company (
             company_type_id,
+            cmp_billing_id,
+            start_date,
+            end_date,
             cmp_desc,
             cmp_filter,
             sms_data,
             action_data
         ) VALUES (
-            $1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb
+            $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb
         )
     `
 
-	// Sample data for JSON fields
-	phoneTypes := []types.BaseFilter{{ID: 1, Name: "Mobile"}, {ID: 2, Name: "Home"}}
-	trpls := []types.BaseFilter{{ID: 1, Name: "Plan A"}, {ID: 2, Name: "Plan B"}}
+	// Sample data for JSON fields (as provided)
+	phoneTypes := []types.BaseFilter{{ID: 1, Name: "gold"}, {ID: 2, Name: "sliver"}}
+	trpls := []types.BaseFilter{{ID: 1, Name: "salom 1"}, {ID: 2, Name: "salom 2"}}
 	balanceLimits := types.BalanceLimit{Start: 50.0, End: 200.0}
 	subscriberStatuses := []types.BaseFilter{{ID: 1, Name: "Active"}, {ID: 2, Name: "Suspended"}}
-	deviceType := 1
+	deviceType := []types.BaseFilter{{ID: 1, Name: "android"}, {ID: 2, Name: "ios"}}
 	packSpent := types.TrafficSpent{Min: 100, Sms: 50, MB: 1024}
 	arpuLimits := types.ARPULimit{Start: 10.0, End: 100.0}
 	regions := []types.BaseFilter{{ID: 1, Name: "Dushanbe"}, {ID: 2, Name: "Khujand"}}
@@ -140,10 +143,10 @@ func seedCompany(db *sql.DB) error {
 
 	// Data for cmp_desc
 	cmpDesc := map[string]interface{}{
-		"desc":       "Leading tech innovation company",
-		"name":       "Tech Innovators Ltd.2",
-		"repition":   3,
-		"startTime":  "2024-10-17T10:00:00Z",
+		"desc":        "Leading tech innovation company",
+		"name":        "Tech Innovators Ltd.2",
+		"repition":    3,
+		"startTime":   "2024-10-17T10:00:00Z",
 		"durationDay": 30,
 	}
 
@@ -165,25 +168,21 @@ func seedCompany(db *sql.DB) error {
 		return fmt.Errorf("failed to marshal action_data: %v", err)
 	}
 
-	// Get the company type IDs
-	rows, err := db.Query("SELECT id FROM company_type ORDER BY id LIMIT 10")
-	if err != nil {
-		return fmt.Errorf("failed to get company_type IDs: %v", err)
-	}
-	defer rows.Close()
+	// Set the start and end dates
+	startDate := time.Now()
+	endDate := startDate.AddDate(0, 0, 5) // End date set to 1 month after start
 
-	var companyTypeIDs []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return fmt.Errorf("failed to scan company_type ID: %v", err)
-		}
-		companyTypeIDs = append(companyTypeIDs, id)
-	}
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
 
 	// Insert the data into the company table
-	for _, companyTypeID := range companyTypeIDs {
-		_, err = db.Exec(query, companyTypeID, cmpDescJSON, cmpFilterJSON, smsDataJSON, actionDataJSON)
+	for i := 0; i < 5; i++ { // Insert 10 records
+		// Generate a random company_type_id between 1 and 100
+		companyTypeID := 1
+		// Generate a random cmp_billing_id between 1000 and 9999
+		cmpBillingID := rand.Intn(9000) + 1000
+
+		_, err = db.Exec(query, companyTypeID, cmpBillingID, startDate, endDate, cmpDescJSON, cmpFilterJSON, smsDataJSON, actionDataJSON)
 		if err != nil {
 			return fmt.Errorf("failed to insert company record: %v", err)
 		}
@@ -191,7 +190,6 @@ func seedCompany(db *sql.DB) error {
 
 	return nil
 }
-
 
 func seedCompanyRepetition(db *sql.DB) error {
 	query := `

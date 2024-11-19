@@ -246,7 +246,6 @@ func getID(r *http.Request) (int, error) {
 }
 
 func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Request) {
-	// Verify content type
 	if r.Header.Get("Content-Type") != "application/json" {
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Content-Type must be application/json"})
 		return
@@ -265,24 +264,19 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Validate the request
 	if err := validateCreateCompanyRequest(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		return
 	}
-
-	// Store company info
+	createCompanyRequest.CmpBillingID = 10
 	if err := h.store.SetCompany(createCompanyRequest); err != nil {
-		// Consider rolling back the company creation here
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
 		return
 	}
-
 	WriteJSON(w, http.StatusCreated, createCompanyRequest)
 }
 
 func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters for pagination
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
 		page = 1
@@ -305,9 +299,9 @@ func validateCreateCompanyRequest(req *types.CreateCompanyReq) error {
 	if req.Company.CmpName == "" {
 		return fmt.Errorf("company name is required")
 	}
-	if req.Company.Duration <= 0 {
-		return fmt.Errorf("duration must be positive")
-	}
+	// if req.Company.Duration <= 0 {
+	// 	return fmt.Errorf("duration must be positive")
+	// }
 	// Add more validation as needed
 	return nil
 }

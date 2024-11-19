@@ -279,9 +279,9 @@ func (s *PgCompanyStore) SetCompanyType(c types.Company) (*int, error) {
 		c.CmpName,
 		c.CmpDesc,
 		c.NaviUser,
-		c.StartTime,
-		c.Duration,
-		c.Repetition,
+		// c.StartTime,
+		// c.Duration,
+		// c.Repetition,
 	).Scan(&compId)
 
 	if err != nil {
@@ -294,20 +294,20 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 	query := `
         INSERT INTO company (
             company_type_id,
+			start_date,
+			end_date,
+			cmp_billing_id,
 			cmp_desc,
             cmp_filter,
 			sms_data,
 			action_data
-        ) VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::json)` // Note the ::jsonb type cast
+        ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::json)` // Note the ::jsonb type cast
 
 	// Create a map for the filter data
 	cmpData := map[string]interface{}{
-		"name":        cmp.Company.CmpName,
-		"desc":        cmp.Company.CmpDesc,
-		"naviUser":    cmp.Company.NaviUser, //Take form token letter on
-		"repition":    cmp.Company.Repition,
-		"startTime":   cmp.Company.StartTime,
-		"durationDay": cmp.Company.Duration,
+		"name":     cmp.Company.CmpName,
+		"desc":     cmp.Company.CmpDesc,
+		"naviUser": cmp.Company.NaviUser, //Take form token letter on
 	}
 
 	// Marshal the map to JSON
@@ -366,8 +366,11 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 	_, err = s.db.Exec(
 		query,
 		cmp.CompanyType,
-		json.RawMessage(cmpJsonData),    // cmp data
-		json.RawMessage(filterJsonData), // Convert to RawMessage
+		cmp.StartDate,
+		cmp.EndDate,
+		cmp.CmpBillingID,
+		json.RawMessage(cmpJsonData),
+		json.RawMessage(filterJsonData),
 		json.RawMessage(sendSmsJsonData),
 		json.RawMessage(actionSmsJsonData),
 	)

@@ -4,11 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
-	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -24,25 +22,25 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	// dwhConfigs := db.DatabaseConfig{
-	// 	Type:     os.Getenv("DWH_DB_TYPE"),
-	// 	Name:     os.Getenv("DWH_DB_NAME"),
-	// 	Host:     os.Getenv("DWH_DB_HOST"),
-	// 	Port:     os.Getenv("DWH_DB_PORT"),
-	// 	User:     os.Getenv("DWH_DB_USER"),
-	// 	Password: os.Getenv("DWH_DB_PASSWORD"),
-	// }
+	dwhConfigs := db.DatabaseConfig{
+		Type:     os.Getenv("DWH_DB_TYPE"),
+		Name:     os.Getenv("DWH_DB_NAME"),
+		Host:     os.Getenv("DWH_DB_HOST"),
+		Port:     os.Getenv("DWH_DB_PORT"),
+		User:     os.Getenv("DWH_DB_USER"),
+		Password: os.Getenv("DWH_DB_PASSWORD"),
+	}
 
-	// oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
-	// if err != nil {
-	// 	log.Fatal("Failed to connect to the database:", err)
-	// }
-	// defer func() {
-	// 	err := oracleClient.Close()
-	// 	if err != nil {
-	// 		log.Fatalf("Can't close go-ora connection: %s", err)
-	// 	}
-	// }()
+	oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
+	if err != nil {
+		log.Fatal("Failed to connect to the database:", err)
+	}
+	defer func() {
+		err := oracleClient.Close()
+		if err != nil {
+			log.Fatalf("Can't close go-ora connection: %s", err)
+		}
+	}()
 
 	pgConfigs := db.DatabaseConfig{
 		Type:     os.Getenv("DB_TYPE"),
@@ -68,16 +66,20 @@ func main() {
 	companyStore := db.NewPgCompanyStore(pgClient)
 	companyHandler := api.NewCompanyHandler(companyStore)
 
-	// companyFilterSotre := db.NewOracleMainScreenStore(oracleClient)
-	// companyFilterHandler := api.NewCompanyFilterHandler(companyFilterSotre)
+	companyFilterSotre := db.NewOracleMainScreenStore(oracleClient)
+	companyFilterHandler := api.NewCompanyFilterHandler(companyFilterSotre)
 
 	router := mux.NewRouter()
-	// router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
-	// router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
-	// router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
-	// router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
-	// router.HandleFunc("/filter/sim/types", companyFilterHandler.HandleSimStatus)
-	// router.HandleFunc("/filter/device/typs", companyFilterHandler.HandleDivceTypes)
+	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
+	router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
+	router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
+	router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
+	router.HandleFunc("/filter/sim/types", companyFilterHandler.HandleSimStatus)
+	router.HandleFunc("/filter/device/types", companyFilterHandler.HandleDivceTypes)
+
+	router.HandleFunc("/prize/list", companyFilterHandler.HandlePrizeList)
+	router.HandleFunc("/action/list", companyFilterHandler.HandleActionCmp)
+
 	router.HandleFunc("/company-type", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany) //Post
 	router.HandleFunc("/companies/{type_id:[0-9]+}", companyHandler.HandleGetCompany)
@@ -93,8 +95,8 @@ func main() {
 
 	handler := c.Handler(router)
 
-	work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second)
-	go work.Start()
+	// work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second)
+	// go work.Start()
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)

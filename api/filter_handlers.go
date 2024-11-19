@@ -75,3 +75,33 @@ func (h *CompanyFilterHandler) HandleDivceTypes(w http.ResponseWriter, r *http.R
 	}
 	WriteJSON(w, 200, result)
 }
+
+func (h *CompanyFilterHandler) HandlePrizeList(w http.ResponseWriter, r *http.Request) {
+	result := []map[string]any{
+		{
+			"id": 1,
+			"name":"1000 gb",
+		},
+		{
+			"id": 2,
+			"name":"2000 gb",
+		},
+	}
+	WriteJSON(w, 200, result)
+}
+
+
+func (h *CompanyFilterHandler) HandleActionCmp(w http.ResponseWriter, r *http.Request) {
+	result := []map[string]any{
+		{
+			"id": 1,
+			"name":"Пополнение баланса",
+		},
+		{
+			"id": 2,
+			"name":"Что то еще",
+		},
+	}
+	WriteJSON(w, 200, result)
+}
+

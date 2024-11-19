@@ -13,13 +13,11 @@ type PaginatedResponse struct {
 }
 
 type Company struct {
-	CmpName    string    `json:"name"`
-	CmpDesc    string    `json:"desc"`
-	NaviUser   string    `json:"naviUser"`
-	Repition   int       `json:"repition"`
-	StartTime  time.Time `json:"startTime"`
-	Duration   int       `json:"durationDay"`
-	Repetition float64   `json:"repetion"`
+	CmpName  string `json:"name"`
+	CmpDesc  string `json:"desc"`
+	NaviUser string `json:"naviUser"`
+	// Duration   int       `json:"durationDay"`
+	// Repetition float64   `json:"repetion"`
 }
 
 type TrafficSpent struct {
@@ -43,7 +41,7 @@ type CompanyInfo struct {
 	Trpl             []BaseFilter `json:"trpl"`             //по тарифу
 	BalanceLimits    BalanceLimit `json:"balanceLimits"`    //по балансу
 	SubscriberStatus []BaseFilter `json:"subscriberStatus"` //По статусу абонента
-	DeviceType       int          `json:"deviceType"`       //По дивайсу ОС
+	DeviceType       []BaseFilter `json:"deviceType"`       //По дивайсу ОС
 	PackSpent        TrafficSpent `json:"packSpent"`        //По использованию мегабайтов
 	ARPULimits       ARPULimit    `json:"arpuLimits"`       //По арпу
 	Region           []BaseFilter `json:"region"`           //По активным услугам
@@ -71,11 +69,14 @@ type CompanyAction struct {
 }
 
 type CreateCompanyReq struct {
-	CompanyType int           `json:"companyType"`
-	Company     Company       `json:"company"`
-	CompanyInfo CompanyInfo   `json:"companyInfo"`
-	SendSms     SmsBefore     `json:"smsInfo"`
-	Action      CompanyAction `json:"keyAction"`
+	CompanyType  int           `json:"companyType"`
+	CmpBillingID int           `json:"cmpBillingId"`
+	StartDate    time.Time     `json:"startDate"`
+	EndDate      time.Time     `json:"endDate"`
+	Company      Company       `json:"company"`
+	CompanyInfo  CompanyInfo   `json:"companyInfo"`
+	SendSms      SmsBefore     `json:"smsInfo"`
+	Action       CompanyAction `json:"keyAction"`
 }
 
 type CompanyDetail struct {

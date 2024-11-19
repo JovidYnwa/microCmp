@@ -15,7 +15,3 @@ docker run -v C:/Users/dzhovid.nurov/Desktop/dev/MicroCmp/migrations:/migrations
 
 
 docker-compose exec web go run scripts/seed.go
-
-
-
-
