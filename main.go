@@ -4,9 +4,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
+	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -63,11 +65,13 @@ func main() {
 		}
 	}()
 
-	companyStore := db.NewPgCompanyStore(pgClient)
-	companyHandler := api.NewCompanyHandler(companyStore)
-
-	companyFilterSotre := db.NewOracleMainScreenStore(oracleClient)
-	companyFilterHandler := api.NewCompanyFilterHandler(companyFilterSotre)
+	var (
+		companyStore         = db.NewPgCompanyStore(pgClient)
+		companyHandler       = api.NewCompanyHandler(companyStore)
+		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
+		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
+		companyWorkerStore   = db.NewWorkerStore(pgClient)
+	)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
@@ -95,8 +99,9 @@ func main() {
 
 	handler := c.Handler(router)
 
-	// work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second)
-	// go work.Start()
+	//Wokers
+	work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second, companyWorkerStore)
+	go work.Start()
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)

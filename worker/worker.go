@@ -2,19 +2,23 @@ package worker
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"time"
+
+	"github.com/JovidYnwa/microCmp/db"
 )
 
 type CmpWoker struct {
 	taskName string
 	ticker   *time.Ticker
+	db       db.WorkerMethod
 }
 
-func NewCmpWoker(t string, interval time.Duration) *CmpWoker {
+// Updated constructor to accept db.WorkerMethod
+func NewCmpWoker(t string, interval time.Duration, db db.WorkerMethod) *CmpWoker {
 	return &CmpWoker{
 		taskName: t,
 		ticker:   time.NewTicker(interval),
+		db:       db,
 	}
 }
 
@@ -25,7 +29,11 @@ func (w *CmpWoker) Start() {
 	}
 }
 
-func (c *CmpWoker) RequestCmpID() string {
-	cmpID := fmt.Sprintf("cmpId = %d", rand.IntN(100))
-	return cmpID
+func (c *CmpWoker) RequestCmpID() any {
+	res, err := c.db.GetActiveCompanies()
+	if err != nil {
+		fmt.Println("Error while receiving: ", err)
+		return nil
+	}
+	return res[0]
 }
