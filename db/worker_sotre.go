@@ -6,9 +6,9 @@ import (
 	"github.com/JovidYnwa/microCmp/types"
 )
 
-
 type WorkerMethod interface {
 	GetActiveCompanies() ([]*types.ActiveCmp, error)
+	GetCompanySubscribers(cmpId int) ([]*types.CmpSubscriber, error)
 }
 
 type WorkerStore struct {
@@ -49,4 +49,34 @@ func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 		companies = append(companies, company)
 	}
 	return companies, nil
+}
+
+func (s *WorkerStore) GetCompanySubscribers(cmpId int) ([]*types.CmpSubscriber, error) {
+	query := `
+		select 
+			c.msisdn, 
+			c.lang_id
+		from cms_user.CAMPAIGN_DETAILS c 
+		where c.campaign_id = 7;
+	`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	subscribers := []*types.CmpSubscriber{}
+	for rows.Next() {
+		subscriber := new(types.CmpSubscriber)
+		err := rows.Scan(
+			&subscriber.Msisdn,
+			&subscriber.LangID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		subscribers = append(subscribers, subscriber)
+	}
+	return subscribers, nil
 }

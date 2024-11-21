@@ -30,10 +30,16 @@ func (w *CmpWoker) Start() {
 }
 
 func (c *CmpWoker) RequestCmpID() any {
-	res, err := c.db.GetActiveCompanies()
+	// res, err := c.db.GetActiveCompanies()
+	// if err != nil {
+	// 	fmt.Println("receiving active companies err: ", err)
+	// 	return nil
+	// }
+
+	res, err := c.db.GetCompanySubscribers(7)
 	if err != nil {
-		fmt.Println("Error while receiving: ", err)
+		fmt.Println("receiving active companies err: ", err)
 		return nil
 	}
-	return res[0]
+	return len(res)
 }
