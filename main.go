@@ -70,7 +70,9 @@ func main() {
 		companyHandler       = api.NewCompanyHandler(companyStore)
 		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
 		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
-		companyWorkerStore   = db.NewWorkerStore(pgClient)
+
+		dwhWorkerStore     = db.NewDwhWorkerStore(oracleClient)
+		companyWorkerStore = db.NewWorkerStore(pgClient)
 	)
 
 	router := mux.NewRouter()
@@ -100,7 +102,7 @@ func main() {
 	handler := c.Handler(router)
 
 	//Wokers
-	work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second, companyWorkerStore)
+	work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second, companyWorkerStore, dwhWorkerStore)
 	go work.Start()
 
 	log.Println("Json API server running on port: ", 3001)
