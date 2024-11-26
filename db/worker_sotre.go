@@ -2,12 +2,14 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/JovidYnwa/microCmp/types"
 )
 
 type WorkerMethod interface {
 	GetActiveCompanies() ([]*types.ActiveCmp, error)
+	InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStatistic, error)
 }
 
 type WorkerStore struct {
@@ -23,7 +25,7 @@ func NewWorkerStore(db *sql.DB) WorkerMethod {
 func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 	query := `
 		select 
-			c.cmp_billing_id,
+			c.id,
 			c.sms_data
 		from company c
 		where c.end_date > current_date;
@@ -50,3 +52,31 @@ func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 	return companies, nil
 }
 
+func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStatistic, error) {
+	query := `
+        INSERT INTO company_repetion
+        (company_id, efficiency, sub_amount, start_date)
+        VALUES
+        ($1, $2, $3, $4)
+        RETURNING company_id, efficiency, sub_amount, start_date
+    `
+
+	var returnedStat types.CmpStatistic
+	err := s.db.QueryRow(query,
+		stat.ID,
+		stat.Efficiency,
+		stat.SubscriberAmount,
+		stat.StartDate,
+	).Scan(
+		&returnedStat.ID,
+		&returnedStat.Efficiency,
+		&returnedStat.SubscriberAmount,
+		&returnedStat.StartDate,
+	)
+
+	if err != nil {
+		return types.CmpStatistic{}, fmt.Errorf("inserting company statistic: %w", err)
+	}
+
+	return returnedStat, nil
+}

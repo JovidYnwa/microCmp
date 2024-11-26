@@ -46,11 +46,11 @@ func main() {
 
 	pgConfigs := db.DatabaseConfig{
 		Type:     os.Getenv("DB_TYPE"),
-		Name:     os.Getenv("DB_NAME"),     //"postgres",
-		Host:     os.Getenv("DB_HOST"),     //"db",
-		Port:     os.Getenv("DB_PORT"),     //"5432",
-		User:     os.Getenv("DB_USER"),     //"postgres",
-		Password: os.Getenv("DB_PASSWORD"), //"test",
+		Name:     os.Getenv("DB_NAME"),
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
 	}
 
 	pgClient, err := db.ConnectToPostgreSQL(pgConfigs)
@@ -102,7 +102,7 @@ func main() {
 	handler := c.Handler(router)
 
 	//Wokers
-	work := worker.NewCmpWoker("Cheaking unprocced comt", 10*time.Second, companyWorkerStore, dwhWorkerStore)
+	work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
 	go work.Start()
 
 	log.Println("Json API server running on port: ", 3001)
