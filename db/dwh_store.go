@@ -8,7 +8,7 @@ import (
 )
 
 type DwhStore interface {
-	GetCompanySubscribers(cmpId int) ([]*types.CmpSubscriber, error)
+	GetCmpSubscribersNotify(cmpId int) ([]*types.CmpSubscriber, error)
 	GetCompanyStatistic(cmpId int, date time.Time) (*types.CmpStatistic, error)
 }
 
@@ -22,16 +22,18 @@ func NewDwhWorkerStore(db *sql.DB) *DwhWorkerStore {
 	}
 }
 
-func (s *DwhWorkerStore) GetCompanySubscribers(cmpId int) ([]*types.CmpSubscriber, error) {
+func (s *DwhWorkerStore) GetCmpSubscribersNotify(cmpId int, cmpDate time.Time) ([]*types.CmpSubscriber, error) {
 	query := `
-		select 
-			c.msisdn, 
-			c.lang_id
-		from cms_user.CAMPAIGN_DETAILS c 
-		where c.campaign_id =:cmpID
+		select c.msisdn, c.lang_id
+		from cms_user.CAMPAIGN_DETAILS c
+		where c.campaign_id =:1
+		and trunc(c.insert_date) = trunc(to_date(:2, 'YYYY-MM-DD'))
+		and c.action_committed = 0
+		and c.notified_count < 2;
 	`
+	dateStr := cmpDate.Format("2006-01-02")
 
-	rows, err := s.db.Query(query, cmpId)
+	rows, err := s.db.Query(query, cmpId, dateStr)
 	if err != nil {
 		return nil, err
 	}

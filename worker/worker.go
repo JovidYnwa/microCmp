@@ -41,7 +41,7 @@ func (c *CmpWoker) RequestCmpID() any {
 	}
 
 	for _, company := range companies {
-		_, err := c.dbDwh.GetCompanySubscribers(company.ID)
+		_, err := c.dbDwh.GetCmpSubscribersNotify(company.ID)
 		if err != nil {
 			fmt.Println("receiving active companies err: ", err)
 			return nil
@@ -59,8 +59,8 @@ func (c *CmpWoker) CmpIterationData() (int, error) {
 
 	for _, company := range companies {
 		cmp := types.CmpStatistic{
-			ID:        company.ID,
-			StartDate: time.Now(),
+			ID:               company.ID,
+			StartDate:        time.Now(),
 			Efficiency:       0, // or some default value
 			SubscriberAmount: 0, // or some default value
 		}

@@ -9,7 +9,7 @@ import (
 
 type WorkerMethod interface {
 	GetActiveCompanies() ([]*types.ActiveCmp, error)
-	InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStatistic, error)
+	InsertCmpStatistic(stat types.CmpStatistic) (*types.CmpStatistic, error)
 }
 
 type WorkerStore struct {
@@ -52,8 +52,25 @@ func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 	return companies, nil
 }
 
-func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStatistic, error) {
-	query := `
+func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (*types.CmpStatistic, error) {
+	var totalCount int
+
+	selectQuery := `
+        SELECT COUNT(cr.id)
+        FROM company_repetion cr
+        WHERE cr.company_id = $1
+        AND DATE_TRUNC('day', cr.start_date::timestamp) = DATE_TRUNC('day', $2::timestamp)
+    `
+	err := s.db.QueryRow(selectQuery, stat.ID, stat.StartDate).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("checking existing company statistic: %w", err)
+	}
+
+	if totalCount > 0 {
+		return nil, nil
+	}
+
+	insertQuery := `
         INSERT INTO company_repetion
         (company_id, efficiency, sub_amount, start_date)
         VALUES
@@ -61,8 +78,8 @@ func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStat
         RETURNING company_id, efficiency, sub_amount, start_date
     `
 
-	var returnedStat types.CmpStatistic
-	err := s.db.QueryRow(query,
+	returnedStat := new(types.CmpStatistic)
+	err = s.db.QueryRow(insertQuery,
 		stat.ID,
 		stat.Efficiency,
 		stat.SubscriberAmount,
@@ -75,7 +92,7 @@ func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (types.CmpStat
 	)
 
 	if err != nil {
-		return types.CmpStatistic{}, fmt.Errorf("inserting company statistic: %w", err)
+		return nil, fmt.Errorf("inserting company statistic: %w", err)
 	}
 
 	return returnedStat, nil
