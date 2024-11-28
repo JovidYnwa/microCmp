@@ -51,13 +51,18 @@ func ConnectToPostgreSQL(config DatabaseConfig) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	err = db.Ping()
-	if err != nil {
-		fmt.Println("ping problem ", err)
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(20)
+	db.SetConnMaxLifetime(time.Minute * 5)
+	db.SetConnMaxIdleTime(time.Minute * 5)
+
+	// Verify the connection with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("error pinging db: %w", err)
+		return nil, fmt.Errorf("error pinging Oracle: %w", err)
 	}
 	return db, nil
 }

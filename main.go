@@ -75,6 +75,27 @@ func main() {
 		companyWorkerStore = db.NewWorkerStore(pgClient)
 	)
 
+	// Woker for creating cmp intaration
+	cmpWorker := worker.NewCmpWoker(
+		"Cmp Worker for setting iteration for comp",
+		20*time.Hour,
+		companyWorkerStore,
+		dwhWorkerStore,
+		worker.SetCmpIteration(companyWorkerStore),
+	)
+
+	// Woker for creating cmp intaration
+	cmpNotifierWorker := worker.NewCmpWoker(
+		"Cmp worker to send notification to subs who did not receive twice",
+		20*time.Second,
+		companyWorkerStore,
+		dwhWorkerStore,
+		worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
+	)
+
+	go cmpWorker.Start()
+	go cmpNotifierWorker.Start()
+
 	router := mux.NewRouter()
 	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
 	router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
@@ -102,8 +123,8 @@ func main() {
 	handler := c.Handler(router)
 
 	//Wokers
-	work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
-	go work.Start()
+	// work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
+	// go work.Start()
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)

@@ -18,7 +18,8 @@ func NewCompanyFilterHandler(companyStore db.CompanyFilterStore) *CompanyFilterH
 }
 
 func (h *CompanyFilterHandler) HandleListTrpls(w http.ResponseWriter, r *http.Request) {
-	result, err := h.filterStore.GetTrpls()
+	ctx := r.Context()
+	result, err := h.filterStore.GetTrpls(ctx)
 	if err != nil {
 		fmt.Printf("Trpls %s", err)
 		WriteJSON(w, 401, "smth bad happaned")
@@ -45,12 +46,17 @@ func (h *CompanyFilterHandler) HandleSubscriberStatus(w http.ResponseWriter, r *
 }
 
 func (h *CompanyFilterHandler) HandleServList(w http.ResponseWriter, r *http.Request) {
-	result, err := h.filterStore.GetServs()
+	ctx := r.Context()
+	result, err := h.filterStore.GetServs(ctx)
 	if err != nil {
-		fmt.Printf("Servs %s", err)
-		WriteJSON(w, 401, err)
+		fmt.Printf("Servs error: %v\n", err)
+		WriteJSON(w, http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+		return
 	}
-	WriteJSON(w, 200, result)
+
+	WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *CompanyFilterHandler) HandleSimStatus(w http.ResponseWriter, r *http.Request) {

@@ -25,7 +25,7 @@ func NewWorkerStore(db *sql.DB) WorkerMethod {
 func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 	query := `
 		select 
-			c.id,
+			c.cmp_billing_id,
 			c.sms_data
 		from company c
 		where c.end_date > current_date;

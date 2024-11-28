@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -9,10 +10,10 @@ import (
 )
 
 type CompanyFilterStore interface {
-	GetTrpls() ([]*types.BaseFilter, error)
+	GetTrpls(ctx context.Context) ([]*types.BaseFilter, error)
 	GetRegions() ([]*types.BaseFilter, error)
 	GetSubsStatuses() ([]*types.BaseFilter, error)
-	GetServs() ([]*types.BaseFilter, error)
+	GetServs(ctx context.Context) ([]*types.BaseFilter, error)
 	GetSimTypes() ([]*types.BaseFilter, error)
 }
 
@@ -26,7 +27,7 @@ func NewOracleMainScreenStore(db *sql.DB) *DwhFilterStore {
 	}
 }
 
-func (s *DwhFilterStore) GetTrpls() ([]*types.BaseFilter, error) {
+func (s *DwhFilterStore) GetTrpls(ctx context.Context) ([]*types.BaseFilter, error) {
 	query := `
 		select 
 			c.trpl_id, 
@@ -102,7 +103,7 @@ func (s *DwhFilterStore) GetSubsStatuses() ([]*types.BaseFilter, error) {
 	return regions, nil
 }
 
-func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
+func (s *DwhFilterStore) GetServs(ctx context.Context) ([]*types.BaseFilter, error) {
 	var (
 		inputIDVal int = -1
 		cursor     go_ora.RefCursor
@@ -112,17 +113,26 @@ func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
 		cmdText    string
 	)
 
-	cmdText = `BEGIN 
-				odsadmin.get_actual_services_by_trpl(i_trpl_id => :i_trpl_id,
-											o_cursor_data => :o_cursor_data,
-											o_result => :o_result,
-											o_err_msg => :o_err_msg,
-											o_error_position => :o_error_position); 
-											commit;
-		END;
-		`
+	// Acquire a fixed connection from the pool
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed GetServs to acquire fixed connection: %w", err)
+	}
+	defer conn.Close()
 
-	_, err := s.db.Exec(cmdText,
+	cmdText = `BEGIN 
+        odsadmin.get_actual_services_by_trpl(
+            i_trpl_id => :i_trpl_id,
+            o_cursor_data => :o_cursor_data,
+            o_result => :o_result,
+            o_err_msg => :o_err_msg,
+            o_error_position => :o_error_position
+        ); 
+        commit;
+    END;`
+
+	// Use ExecContext instead of Exec
+	_, err = conn.ExecContext(ctx, cmdText,
 		inputIDVal,
 		sql.Out{Dest: &cursor},
 		sql.Out{Dest: &resultCode},
@@ -136,19 +146,29 @@ func (s *DwhFilterStore) GetServs() ([]*types.BaseFilter, error) {
 
 	defer cursor.Close()
 
+	// Use QueryContext if available in go-ora, otherwise use Query
 	rows, err := cursor.Query()
 	if err != nil {
-		return nil, fmt.Errorf("retrieving data from Servs cursor  err: %w", err)
+		return nil, fmt.Errorf("retrieving data from Servs cursor err: %w", err)
 	}
-	resp := []*types.BaseFilter{}
+	defer rows.Close()
+
+	resp := make([]*types.BaseFilter, 0)
 	for rows.Next_() {
-		var serv types.BaseFilter
-		err = rows.Scan(&serv.ID, &serv.Name)
-		if err != nil {
-			return nil, fmt.Errorf("scanning Servs row for err: %w", err)
+		// Check context cancellation during iteration
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			var serv types.BaseFilter
+			err = rows.Scan(&serv.ID, &serv.Name)
+			if err != nil {
+				return nil, fmt.Errorf("scanning Servs row err: %w", err)
+			}
+			resp = append(resp, &serv)
 		}
-		resp = append(resp, &serv)
 	}
+
 	return resp, nil
 }
 
