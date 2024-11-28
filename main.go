@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 
+	// Import your local kafka package
 	_ "github.com/sijms/go-ora/v2"
 )
 
@@ -128,4 +129,5 @@ func main() {
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)
+
 }
