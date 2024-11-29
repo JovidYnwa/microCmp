@@ -1,10 +1,7 @@
 package kafka
 
-import "github.com/confluentinc/confluent-kafka-go/kafka"
+import "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
-type Config struct {
-	BootstrapServers string
-	Topic            string
-	GroupID          string
-	d                *kafka.Producer
+type Producer struct {
+	Producer *kafka.Producer
 }
