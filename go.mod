@@ -13,5 +13,3 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/sijms/go-ora/v2 v2.8.21
 )
-
-require github.com/confluentinc/confluent-kafka-go/v2 v2.6.1 // indirect
