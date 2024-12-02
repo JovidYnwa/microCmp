@@ -41,15 +41,15 @@ func main() {
 	// }
 	// fmt.Println("Company table seeded successfully!")
 
-	if err := seedCompany(db); err != nil {
-		log.Fatalf("Failed to seed company_info: %v", err)
-	}
-	fmt.Println("Company info seeded successfully!")
-
-	// if err := seedCompanyRepetition(db); err != nil {
-	// 	log.Fatalf("Failed to seed company_repetition: %v", err)
+	// if err := seedCompany(db); err != nil {
+	// 	log.Fatalf("Failed to seed company_info: %v", err)
 	// }
-	// fmt.Println("Company repetition seeded successfully!")
+	// fmt.Println("Company info seeded successfully!")
+
+	if err := seedCompanyRepetition(db); err != nil {
+		log.Fatalf("Failed to seed company_repetition: %v", err)
+	}
+	fmt.Println("Company repetition seeded successfully!")
 }
 
 func seedCompanyType(db *sql.DB) error {
@@ -197,9 +197,9 @@ func seedCompanyRepetition(db *sql.DB) error {
             company_id,
             efficiency,
             sub_amount,
-            start_date,
-            end_date
-        ) VALUES ($1, $2, $3, $4, $5)
+            start_date
+            --end_date
+        ) VALUES ($1, $2, $3, $4)
     `
 
 	rows, err := db.Query("SELECT id FROM company ORDER BY id LIMIT 10")
@@ -222,14 +222,14 @@ func seedCompanyRepetition(db *sql.DB) error {
 		efficiency := 0.5 + float64(i)*0.05 // Efficiency from 0.5 to 0.95
 		subAmount := 1000 + i*100           // Sub amount from 1000 to 1900
 		startDate := baseTime.AddDate(0, 0, -i)
-		endDate := startDate.AddDate(0, 1, 0) // One month later
+		//endDate := startDate.AddDate(0, 1, 0) // One month later
 
 		_, err := db.Exec(query,
 			companyID,
 			efficiency,
 			subAmount,
 			startDate,
-			endDate,
+			//endDate,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert company_repetion record: %v", err)
