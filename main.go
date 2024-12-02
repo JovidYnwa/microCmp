@@ -8,6 +8,7 @@ import (
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
+	"github.com/JovidYnwa/microCmp/internal/kafka"
 	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -65,6 +66,9 @@ func main() {
 			log.Fatalf("Can't close pg connection: %s", err)
 		}
 	}()
+
+	producer := kafka.NewProducerFromEnv()
+	defer producer.Close()
 
 	var (
 		companyStore         = db.NewPgCompanyStore(pgClient)
