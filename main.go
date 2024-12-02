@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -67,8 +68,8 @@ func main() {
 		}
 	}()
 
-	producer := kafka.NewProducerFromEnv()
-	defer producer.Close()
+	kafkaproducer := kafka.NewProducerFromEnv()
+	defer kafkaproducer.Close()
 
 	var (
 		companyStore         = db.NewPgCompanyStore(pgClient)
@@ -130,6 +131,7 @@ func main() {
 	//Wokers
 	// work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
 	// go work.Start()
+	// After successfully creating the company, send a message to Kafka
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)
