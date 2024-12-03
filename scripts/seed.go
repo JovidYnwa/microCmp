@@ -36,15 +36,15 @@ func main() {
 
 	fmt.Println("Successfully connected to the database!")
 
-	// if err := seedCompanyType(db); err != nil {
-	// 	log.Fatalf("Failed to seed company: %v", err)
-	// }
-	// fmt.Println("Company table seeded successfully!")
+	if err := seedCompanyType(db); err != nil {
+		log.Fatalf("Failed to seed company: %v", err)
+	}
+	fmt.Println("Company table seeded successfully!")
 
-	// if err := seedCompany(db); err != nil {
-	// 	log.Fatalf("Failed to seed company_info: %v", err)
-	// }
-	// fmt.Println("Company info seeded successfully!")
+	if err := seedCompany(db); err != nil {
+		log.Fatalf("Failed to seed company_info: %v", err)
+	}
+	fmt.Println("Company info seeded successfully!")
 
 	if err := seedCompanyRepetition(db); err != nil {
 		log.Fatalf("Failed to seed company_repetition: %v", err)
@@ -107,7 +107,7 @@ func seedCompany(db *sql.DB) error {
 	packSpent := types.TrafficSpent{Min: 100, Sms: 50, MB: 1024}
 	arpuLimits := types.ARPULimit{Start: 10.0, End: 100.0}
 	regions := []types.BaseFilter{{ID: 1, Name: "Dushanbe"}, {ID: 2, Name: "Khujand"}}
-	simDate := time.Now().AddDate(0, -6, 0) // Sim date 6 months ago
+	simDate := types.CustomTime{Time: time.Now().AddDate(0, -6, 0)} // Sim date 6 months ago
 	services := []types.BaseFilter{{ID: 1, Name: "Service A"}, {ID: 2, Name: "Service B"}}
 	wheelUsage := true
 

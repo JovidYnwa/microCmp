@@ -1,7 +1,9 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/JovidYnwa/microCmp/types"
@@ -10,6 +12,7 @@ import (
 type DwhStore interface {
 	GetCmpSubscribersNotify(cmpID int) ([]*types.CmpSubscriber, error)
 	GetCompanyStatistic(cmpId int, date time.Time) (*types.CmpStatistic, error)
+	//GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*int, error)
 }
 
 type DwhWorkerStore struct {
@@ -78,4 +81,80 @@ func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.
 	}
 
 	return cmp, nil
+}
+
+func (s *DwhFilterStore) GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*int, error) {
+	var (
+		resultCode int
+		resultText string
+		resutPos   string
+		cmdText    string
+	)
+
+	// Acquire a fixed connection from the pool
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed GetServs to acquire fixed connection: %w", err)
+	}
+	defer conn.Close()
+
+	cmdText = `BEGIN
+         cms_modules.get_cms_campaign_id(
+			i_phoneType => :i_phoneType,
+			i_trpl => :i_trpl,
+			i_balanceStart => :i_balanceStart,
+			i_balanceEnd => :i_balanceEnd,
+			i_subscriberStatus => :i_subscriberStatus,
+			i_deviceType => :i_deviceType,
+			i_packSpentMin => :i_packSpentMin,
+			i_packSpentSms => :i_packSpentSms,
+			i_packSpentMb => :i_packSpentMb,
+			i_arpuStart => :i_arpuStart,
+			i_arpuEnd => :i_arpuEnd,
+			i_region => :i_region,
+			i_startDate => :i_startDate,
+			i_act_services => :i_act_services,
+			i_noact_services => :i_noact_services,
+			i_wheel_use => :i_wheel_use,
+			i_campaign_start_dt => :i_campaign_start_dt,
+			i_campaign_end_dt => :i_campaign_end_dt,
+			o_campaign_id => :o_campaign_id,
+			o_result_code => :o_result_code,
+			o_result_text => :o_result_text
+        );
+    END;`
+
+	// Use ExecContext instead of Exec
+	_, err = conn.ExecContext(ctx, cmdText,
+		params.CompanyInfo.PhoneType,
+		params.CompanyInfo.Trpl,
+		params.CompanyInfo.BalanceLimits.Start,
+		params.CompanyInfo.BalanceLimits.End,
+		params.CompanyInfo.SubscriberStatus,
+		params.CompanyInfo.DeviceType,
+		params.CompanyInfo.PackSpent.Min,
+		params.CompanyInfo.PackSpent.Sms,
+		params.CompanyInfo.PackSpent.MB,
+		params.CompanyInfo.ARPULimits.Start,
+		params.CompanyInfo.ARPULimits.End,
+		params.CompanyInfo.Region,
+		params.CompanyInfo.SimDate,
+		params.CompanyInfo.Service,
+		params.CompanyInfo.ServiceOff,
+		'0', //should be dynamic
+		params.StartDate,
+		params.EndDate,
+		sql.Out{Dest: &resultCode},
+		sql.Out{Dest: &resultText},
+		sql.Out{Dest: &resutPos},
+	)
+	if err != nil {
+		return nil, nil
+	}
+
+	fmt.Println(resultCode)
+	fmt.Println(resultText)
+	fmt.Println(resutPos)
+
+	return nil, nil
 }

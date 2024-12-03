@@ -251,14 +251,18 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Read the request body
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to read request body: " + err.Error()})
 		return
 	}
+
+	// Restore the body for subsequent decoding
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	createCompanyRequest := new(types.CreateCompanyReq)
+	// GPT make SmsBefore.smsInfo.remiderDay equeal to 3
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Invalid request body: " + err.Error()})
 		return
@@ -268,11 +272,15 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		return
 	}
-	createCompanyRequest.CmpBillingID = 10
+
+	createCompanyRequest.CmpBillingID = 10 // Example value; replace with actual billing procedure logic
+	createCompanyRequest.CompanyType = 1   //Make it dynamic
+
 	if err := h.store.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
 		return
 	}
+
 	WriteJSON(w, http.StatusCreated, createCompanyRequest)
 }
 
@@ -283,13 +291,13 @@ func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request
 	}
 	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
 	if err != nil || pageSize < 1 {
-		pageSize = 10 // Default page size
+		pageSize = 10
 	}
 
 	paginatedResponse, err := h.store.GetCompany(page, pageSize)
 	if err != nil {
-		fmt.Println(err)
-		WriteJSON(w, http.StatusOK, paginatedResponse)
+		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
 	}
 	WriteJSON(w, http.StatusOK, paginatedResponse)
 }
@@ -342,4 +350,8 @@ func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.R
 	}
 
 	WriteJSON(w, http.StatusOK, s)
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
 }
