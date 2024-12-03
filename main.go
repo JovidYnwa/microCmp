@@ -71,8 +71,10 @@ func main() {
 	defer kafkaproducer.Close()
 
 	var (
-		companyStore         = db.NewPgCompanyStore(pgClient)
-		companyHandler       = api.NewCompanyHandler(companyStore)
+		companyPgStore  = db.NewPgCompanyStore(pgClient)
+		companyDwhStore = db.NewDwhWorkerStore(oracleClient)
+		companyHandler  = api.NewCompanyHandler(companyPgStore, companyDwhStore)
+
 		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
 		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
 

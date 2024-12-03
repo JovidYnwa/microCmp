@@ -12,7 +12,7 @@ import (
 type DwhStore interface {
 	GetCmpSubscribersNotify(cmpID int) ([]*types.CmpSubscriber, error)
 	GetCompanyStatistic(cmpId int, date time.Time) (*types.CmpStatistic, error)
-	//GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*int, error)
+	GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*float64, error)
 }
 
 type DwhWorkerStore struct {
@@ -83,21 +83,14 @@ func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.
 	return cmp, nil
 }
 
-func (s *DwhFilterStore) GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*int, error) {
+func (s *DwhWorkerStore) GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*float64, error) {
 	var (
-		billingId  int
+		billingId  float64
 		resutCode  int
-		wheelUsed  int = 1
+		wheelUsed  int = 0
 		resultText string
 		cmdText    string
 	)
-
-	// Acquire a fixed connection from the pool
-	conn, err := s.db.Conn(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed GetServs to acquire fixed connection: %w", err)
-	}
-	defer conn.Close()
 
 	cmdText = `BEGIN
          cms_modules.get_cms_campaign_id(
@@ -125,36 +118,46 @@ func (s *DwhFilterStore) GetDWHCompanyID(ctx context.Context, params *types.Crea
         );
     END;`
 
+	if params.CompanyInfo.WheelUsage {
+		wheelUsed = 1
+	} else {
+		wheelUsed = 0
+	}
+
 	// Use ExecContext instead of Exec
-	_, err = conn.ExecContext(ctx, cmdText,
-		params.CompanyInfo.PhoneType,
-		params.CompanyInfo.Trpl,
+	_, err := s.db.ExecContext(ctx, cmdText,
+		params.CompanyInfo.PhoneType[0].ID,
+		params.CompanyInfo.Trpl[0].ID,
 		params.CompanyInfo.BalanceLimits.Start,
 		params.CompanyInfo.BalanceLimits.End,
-		params.CompanyInfo.SubscriberStatus,
-		params.CompanyInfo.DeviceType,
+		params.CompanyInfo.SubscriberStatus[0].ID,
+		params.CompanyInfo.DeviceType[0].ID,
 		params.CompanyInfo.PackSpent.Min,
 		params.CompanyInfo.PackSpent.Sms,
 		params.CompanyInfo.PackSpent.MB,
 		params.CompanyInfo.ARPULimits.Start,
 		params.CompanyInfo.ARPULimits.End,
-		params.CompanyInfo.Region,
-		params.CompanyInfo.SimDate,
-		params.CompanyInfo.Service,
-		params.CompanyInfo.ServiceOff,
-		'0', //should be dynamic
-		params.StartDate,
-		params.EndDate,
+		params.CompanyInfo.Region[0].ID,
+		params.CompanyInfo.SimDate.String(),
+		params.CompanyInfo.Service[0].ID,
+		"0",
+		string(wheelUsed), //should be dynamic
+		params.StartDate.String(),
+		params.EndDate.String(),
 		sql.Out{Dest: &billingId},
 		sql.Out{Dest: &resutCode},
 		sql.Out{Dest: &resultText},
 	)
+
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("failed to get billingID GetDWHCompanyID: %w", err)
 	}
+
 	if resutCode != 0 {
 		return nil, fmt.Errorf("failed to get billingID GetDWHCompanyID: %w", err)
 	}
-	fmt.Println(wheelUsed)
+	fmt.Println(billingId)
+	fmt.Println(resutCode)
+
 	return &billingId, nil
 }

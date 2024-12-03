@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,9 +22,10 @@ type CompanyHandler struct {
 }
 
 // Constructor function for CompanyHandler
-func NewCompanyHandler(store db.CompanyStore) *CompanyHandler {
+func NewCompanyHandler(storePg db.CompanyStore, storeDwh db.DwhStore) *CompanyHandler {
 	return &CompanyHandler{
-		storePg: store,
+		storePg:  storePg,
+		storeDwh: storeDwh,
 	}
 }
 
@@ -273,8 +275,15 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	createCompanyRequest.CmpBillingID = 10 // Example value; replace with actual billing procedure logic
-	createCompanyRequest.CompanyType = 1   //Make it dynamic
+	billingID, err := h.storeDwh.GetDWHCompanyID(r.Context(), createCompanyRequest)
+	if err != nil {
+		//log that procedure did not woked
+		fmt.Printf("error on getting cmp id from biling %s", err)
+		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+	}
+	fmt.Println(billingID)
+
+	createCompanyRequest.CmpBillingID = int(math.Round(*billingID)) //setting BilligCmpID
 
 	if err := h.storePg.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
