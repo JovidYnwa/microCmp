@@ -98,15 +98,15 @@ type CompanyTypeResp struct {
 }
 
 type CompanyResp struct {
-	ID         int     `json:"id"`
-	NaviUser   string  `json:"naviUser"`
-	CmpDesc    string  `json:"desc"`
-	Name       string  `json:"name"`
-	CmpLunched int     `json:"cmpLunched"`
-	SubsAmount int     `json:"subAmount"`
-	Efficiency float64 `json:"efficiency"`
-	StartDate  string  `json:"startDate"`
-	EndDate    string  `json:"endDate"`
+	ID         int      `json:"id"`
+	NaviUser   string   `json:"naviUser"`
+	CmpDesc    string   `json:"desc"`
+	Name       string   `json:"name"`
+	CmpLunched int      `json:"cmpLunched"`
+	SubsAmount *int     `json:"subAmount"`
+	Efficiency *float64 `json:"efficiency"`
+	StartDate  *string  `json:"startDate"`
+	EndDate    *string  `json:"endDate"`
 }
 
 type CompanyDetailResp struct {

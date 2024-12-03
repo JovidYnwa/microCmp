@@ -85,9 +85,10 @@ func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.
 
 func (s *DwhFilterStore) GetDWHCompanyID(ctx context.Context, params *types.CreateCompanyReq) (*int, error) {
 	var (
-		resultCode int
+		billingId  int
+		resutCode  int
+		wheelUsed  int = 1
 		resultText string
-		resutPos   string
 		cmdText    string
 	)
 
@@ -144,17 +145,16 @@ func (s *DwhFilterStore) GetDWHCompanyID(ctx context.Context, params *types.Crea
 		'0', //should be dynamic
 		params.StartDate,
 		params.EndDate,
-		sql.Out{Dest: &resultCode},
+		sql.Out{Dest: &billingId},
+		sql.Out{Dest: &resutCode},
 		sql.Out{Dest: &resultText},
-		sql.Out{Dest: &resutPos},
 	)
 	if err != nil {
 		return nil, nil
 	}
-
-	fmt.Println(resultCode)
-	fmt.Println(resultText)
-	fmt.Println(resutPos)
-
-	return nil, nil
+	if resutCode != 0 {
+		return nil, fmt.Errorf("failed to get billingID GetDWHCompanyID: %w", err)
+	}
+	fmt.Println(wheelUsed)
+	return &billingId, nil
 }

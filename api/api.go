@@ -16,13 +16,14 @@ import (
 )
 
 type CompanyHandler struct {
-	store db.CompanyStore
+	storePg  db.CompanyStore
+	storeDwh db.DwhStore
 }
 
 // Constructor function for CompanyHandler
 func NewCompanyHandler(store db.CompanyStore) *CompanyHandler {
 	return &CompanyHandler{
-		store: store,
+		storePg: store,
 	}
 }
 
@@ -128,7 +129,7 @@ func (s *CompanyHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 			return fmt.Errorf("invalid id given %s", idStr)
 		}
 
-		account, err := s.store.GetAccountByID(id)
+		account, err := s.storePg.GetAccountByID(id)
 		if err != nil {
 			return err
 		}
@@ -143,7 +144,7 @@ func (s *CompanyHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 
 // Get /account
 func (s *CompanyHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAccounts()
+	accounts, err := s.storePg.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (s *CompanyHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	account := types.NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
-	if err := s.store.CreateAccount(account); err != nil {
+	if err := s.storePg.CreateAccount(account); err != nil {
 		return err
 	}
 	token, err := createJWT(account)
@@ -175,7 +176,7 @@ func (s *CompanyHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return fmt.Errorf("invalid id given %s", idStr)
 	}
-	if err := s.store.DeleteAccount(id); err != nil {
+	if err := s.storePg.DeleteAccount(id); err != nil {
 		return err
 	}
 	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
@@ -262,7 +263,6 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	createCompanyRequest := new(types.CreateCompanyReq)
-	// GPT make SmsBefore.smsInfo.remiderDay equeal to 3
 	if err := json.NewDecoder(r.Body).Decode(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "Invalid request body: " + err.Error()})
 		return
@@ -276,7 +276,7 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 	createCompanyRequest.CmpBillingID = 10 // Example value; replace with actual billing procedure logic
 	createCompanyRequest.CompanyType = 1   //Make it dynamic
 
-	if err := h.store.SetCompany(createCompanyRequest); err != nil {
+	if err := h.storePg.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
 		return
 	}
@@ -294,7 +294,9 @@ func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request
 		pageSize = 10
 	}
 
-	paginatedResponse, err := h.store.GetCompany(page, pageSize)
+	paginatedResponse, err := h.storePg.GetCompanies(page, pageSize)
+	// paginatedResponse, err := h.store.GetCompany(page, pageSize)
+
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
@@ -326,7 +328,7 @@ func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Reque
 		pageSize = 10 // Default page size
 	}
 
-	paginatedResponse, err := h.store.GetCompanyType(page, pageSize)
+	paginatedResponse, err := h.storePg.GetCompanyType(page, pageSize)
 	if err != nil {
 		fmt.Println(err)
 		WriteJSON(w, http.StatusOK, paginatedResponse)
@@ -343,7 +345,7 @@ func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	s, err := h.store.GetCompanyByID(companyID)
+	s, err := h.storePg.GetCompanyByID(companyID)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, err.Error())
 		return

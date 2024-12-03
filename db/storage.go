@@ -17,7 +17,9 @@ type CompanyStore interface {
 	GetAccountByID(int) (*types.Account, error)
 
 	GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error)
-	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)
+	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)	
+	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
+
 	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
 
 	SetCompanyType(c types.Company) (*int, error)
@@ -235,6 +237,79 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 			(c.cmp_desc ->> 'startTime')::TIMESTAMP,  
 			(c.cmp_desc ->> 'durationDay')::INTEGER
 		LIMIT $1 OFFSET $2`
+	rows, err := s.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	companies := []*types.CompanyResp{}
+	for rows.Next() {
+		cmp := new(types.CompanyResp)
+		err := rows.Scan(
+			&cmp.ID,
+			&cmp.Name,
+			&cmp.CmpDesc,
+			&cmp.Efficiency,
+			&cmp.SubsAmount,
+			&cmp.StartDate,
+			&cmp.EndDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		companies = append(companies, cmp)
+	}
+
+	return &types.PaginatedResponse{
+		TotalCount:  totalCount,
+		TotalPages:  totalPages,
+		CurrentPage: page,
+		PageSize:    pageSize,
+		Data:        companies,
+	}, nil
+}
+
+func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+	// Count total number of companies
+	var totalCount int
+	err := s.db.QueryRow(`
+	    select count(id) from company`).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Print(totalCount)
+
+	// Calculate pagination values
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	offset := (page - 1) * pageSize
+
+	// Query for paginated results
+	query := `
+		SELECT 
+		c.id,
+		c.cmp_desc ->> 'name' AS name,
+		c.cmp_desc ->> 'desc' AS description,
+		ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage,
+		SUM(cr.sub_amount) AS total_sub_amount,
+    TO_CHAR((c.cmp_desc ->> 'startTime')::TIMESTAMP, 'DD.MM.YYYY') AS start_date,
+		TO_CHAR(
+			(c.cmp_desc ->> 'startTime')::TIMESTAMP + 
+			(c.cmp_desc ->> 'durationDay')::INTEGER * INTERVAL '1 day',
+			'DD.MM.YYYY'
+		) AS end_date
+	FROM 
+		company c
+	left JOIN 
+		company_repetion cr ON c.id = cr.company_id
+	GROUP BY 
+		c.id,                                
+		c.cmp_desc ->> 'name',
+		c.cmp_desc ->> 'desc',
+		(c.cmp_desc ->> 'startTime')::TIMESTAMP,
+		(c.cmp_desc ->> 'durationDay')::INTEGER
+	LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
 		return nil, err
