@@ -21,9 +21,9 @@ type CompanyStore interface {
 	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
 
 	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
-
 	SetCompanyType(c types.Company) (*int, error)
 	SetCompany(cmp *types.CreateCompanyReq) error
+	//UpdateCompanyIteration(comID int) error
 }
 
 type PgCompanyStore struct {
