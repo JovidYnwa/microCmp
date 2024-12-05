@@ -103,3 +103,25 @@ func CmpNotifier(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 		return nil
 	}
 }
+
+// Task 3: CmpInerationStatistic function
+func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
+	return func() error {
+
+		companies, err := dbPg.GetActiveCompanyItarations()
+		if err != nil {
+			return fmt.Errorf("getting active company iterations: %w", err)
+		}
+
+		for _, company := range companies {
+			statistic, err := dbDwh.GetCompanyStatistic(company.ID, company.ItarationDay)
+			if err != nil {
+				fmt.Printf("cmpID=%d subscriber amount = %d, efficiency = %.2f\n", company.ID, statistic.SubscriberAmount, statistic.Efficiency)
+			}
+			fmt.Printf("cmpID=%d subsciber amount = %v\n", company.ID, *statistic)
+		}
+		return nil
+	}
+}
+
+// Task 3: CmpStatistic function only fomr Pg Db (company_repetion) not useing db

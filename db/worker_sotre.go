@@ -9,6 +9,7 @@ import (
 
 type WorkerMethod interface {
 	GetActiveCompanies() ([]*types.ActiveCmp, error)
+	GetActiveCompanyItarations() ([]*types.ActiveCmpIteration, error)
 	InsertCmpStatistic(stat types.CmpStatistic) (*types.CmpStatistic, error)
 }
 
@@ -43,6 +44,38 @@ func (s *WorkerStore) GetActiveCompanies() ([]*types.ActiveCmp, error) {
 		err := rows.Scan(
 			&company.ID,
 			&company.SmsText,
+		)
+		if err != nil {
+			return nil, err
+		}
+		companies = append(companies, company)
+	}
+	return companies, nil
+}
+
+func (s *WorkerStore) GetActiveCompanyItarations() ([]*types.ActiveCmpIteration, error) {
+	query := `
+		SELECT 
+			c.cmp_billing_id, 
+			cr.start_date
+		FROM company c
+		JOIN company_repetion cr 
+		ON c.id = cr.company_id
+		WHERE c.end_date + INTERVAL '3 days' > NOW(); --cmp should work 3 day even after cmp completeion
+	`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	companies := []*types.ActiveCmpIteration{}
+	for rows.Next() {
+		company := new(types.ActiveCmpIteration)
+		err := rows.Scan(
+			&company.ID,
+			&company.ItarationDay,
 		)
 		if err != nil {
 			return nil, err

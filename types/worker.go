@@ -7,6 +7,11 @@ type ActiveCmp struct {
 	SmsText any
 }
 
+type ActiveCmpIteration struct {
+	ID           int
+	ItarationDay time.Time
+}
+
 type CmpSubscriber struct {
 	Msisdn string
 	LangID int
@@ -14,7 +19,7 @@ type CmpSubscriber struct {
 
 type CmpStatistic struct {
 	ID               int
-	Efficiency       int
+	Efficiency       float64
 	SubscriberAmount int
 	StartDate        time.Time
 }

@@ -60,13 +60,19 @@ func (s *DwhWorkerStore) GetCmpSubscribersNotify(cmpID int) ([]*types.CmpSubscri
 
 func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.CmpStatistic, error) {
 	query := `
-        select 
-            count(c.campaign_id)
-        from cms_user.CAMPAIGN_DETAILS c 
-        where c.is_participate = 1
-        and c.campaign_id = :1
-        and trunc(c.insert_date) = trunc(to_date(:2, 'YYYY-MM-DD'))
-    `
+		SELECT 
+			COUNT(*) AS total_participants,
+			CASE 
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE ROUND(
+					COUNT(CASE WHEN c.action_committed = 1 THEN 1 END) * 100.0 / COUNT(*), 2
+				)
+			END AS efficiency_percentage
+		FROM cms_user.CAMPAIGN_DETAILS c
+		WHERE c.campaign_id = :1
+		AND trunc(c.insert_date) = trunc(to_date(:2, 'YYYY-MM-DD'))
+		AND c.is_participate = 1
+	`
 	dateStr := date.Format("2006-01-02")
 
 	cmp := &types.CmpStatistic{
@@ -74,14 +80,13 @@ func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.
 		StartDate: date,
 	}
 
-	err := s.db.QueryRow(query, cmpId, dateStr).Scan(&cmp.SubscriberAmount)
+	err := s.db.QueryRow(query, cmpId, dateStr).Scan(&cmp.SubscriberAmount, &cmp.Efficiency)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("query error: %w", err)
 	}
-
 	return cmp, nil
 }
 
@@ -154,7 +159,7 @@ func (s *DwhWorkerStore) GetDWHCompanyID(ctx context.Context, params *types.Crea
 		sql.Named("o_result_code", sql.Out{Dest: &resutCode}),
 		sql.Named("o_result_text", sql.Out{Dest: &resultText}),
 	)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute stored procedure: %w", err)
 	}
