@@ -254,14 +254,11 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Read the request body
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to read request body: " + err.Error()})
 		return
 	}
-
-	// Restore the body for subsequent decoding
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	createCompanyRequest := new(types.CreateCompanyReq)
@@ -277,13 +274,12 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 
 	billingID, err := h.storeDwh.GetDWHCompanyID(r.Context(), createCompanyRequest)
 	if err != nil {
-		//log that procedure did not woked
+		//log to file
 		fmt.Printf("error on getting cmp id from biling %s", err)
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 	}
-	fmt.Println(billingID)
 
-	createCompanyRequest.CmpBillingID = int(math.Round(*billingID)) //setting BilligCmpID
+	createCompanyRequest.CmpBillingID = int(math.Round(*billingID)) 
 
 	if err := h.storePg.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})

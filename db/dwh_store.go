@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JovidYnwa/microCmp/types"
@@ -87,7 +89,7 @@ func (s *DwhWorkerStore) GetDWHCompanyID(ctx context.Context, params *types.Crea
 	var (
 		billingId  float64
 		resutCode  int
-		wheelUsed  int = 0
+		wheelUsed  string = "0"
 		resultText string
 		cmdText    string
 	)
@@ -119,45 +121,59 @@ func (s *DwhWorkerStore) GetDWHCompanyID(ctx context.Context, params *types.Crea
     END;`
 
 	if params.CompanyInfo.WheelUsage {
-		wheelUsed = 1
-	} else {
-		wheelUsed = 0
+		wheelUsed = "1"
 	}
 
-	// Use ExecContext instead of Exec
-	_, err := s.db.ExecContext(ctx, cmdText,
-		params.CompanyInfo.PhoneType[0].ID,
-		params.CompanyInfo.Trpl[0].ID,
-		params.CompanyInfo.BalanceLimits.Start,
-		params.CompanyInfo.BalanceLimits.End,
-		params.CompanyInfo.SubscriberStatus[0].ID,
-		params.CompanyInfo.DeviceType[0].ID,
-		params.CompanyInfo.PackSpent.Min,
-		params.CompanyInfo.PackSpent.Sms,
-		params.CompanyInfo.PackSpent.MB,
-		params.CompanyInfo.ARPULimits.Start,
-		params.CompanyInfo.ARPULimits.End,
-		params.CompanyInfo.Region[0].ID,
-		params.CompanyInfo.SimDate.String(),
-		params.CompanyInfo.Service[0].ID,
-		"0",
-		string(wheelUsed), //should be dynamic
-		params.StartDate.String(),
-		params.EndDate.String(),
-		sql.Out{Dest: &billingId},
-		sql.Out{Dest: &resutCode},
-		sql.Out{Dest: &resultText},
-	)
+	// Format dates
+	startDate := params.CompanyInfo.SimDate.Format("02-Jan-2006")
+	campaignStartDate := params.StartDate.Format("02-Jan-2006")
+	campaignEndDate := params.EndDate.Format("02-Jan-2006")
 
+	resultText = strings.Repeat(" ", 255)
+
+	_, err := s.db.ExecContext(ctx, cmdText,
+		sql.Named("i_phoneType", idList(params.CompanyInfo.PhoneType)),
+		sql.Named("i_trpl", idList(params.CompanyInfo.Trpl)),
+		sql.Named("i_balanceStart", params.CompanyInfo.BalanceLimits.Start),
+		sql.Named("i_balanceEnd", params.CompanyInfo.BalanceLimits.End),
+		sql.Named("i_subscriberStatus", idList(params.CompanyInfo.SubscriberStatus)),
+		sql.Named("i_deviceType", idList(params.CompanyInfo.DeviceType)),
+		sql.Named("i_packSpentMin", params.CompanyInfo.PackSpent.Min),
+		sql.Named("i_packSpentSms", params.CompanyInfo.PackSpent.Sms),
+		sql.Named("i_packSpentMb", params.CompanyInfo.PackSpent.MB),
+		sql.Named("i_arpuStart", params.CompanyInfo.ARPULimits.Start),
+		sql.Named("i_arpuEnd", params.CompanyInfo.ARPULimits.End),
+		sql.Named("i_region", idList(params.CompanyInfo.Region)),
+		sql.Named("i_startDate", startDate),
+		sql.Named("i_act_services", idList(params.CompanyInfo.Service)),
+		sql.Named("i_noact_services", nil), // Empty string for no inactive services
+		sql.Named("i_wheel_use", wheelUsed),
+		sql.Named("i_campaign_start_dt", campaignStartDate),
+		sql.Named("i_campaign_end_dt", campaignEndDate),
+		sql.Named("o_campaign_id", sql.Out{Dest: &billingId}),
+		sql.Named("o_result_code", sql.Out{Dest: &resutCode}),
+		sql.Named("o_result_text", sql.Out{Dest: &resultText}),
+	)
+	
 	if err != nil {
-		return nil, fmt.Errorf("failed to get billingID GetDWHCompanyID: %w", err)
+		return nil, fmt.Errorf("failed to execute stored procedure: %w", err)
 	}
 
 	if resutCode != 0 {
-		return nil, fmt.Errorf("failed to get billingID GetDWHCompanyID: %w", err)
+		return nil, fmt.Errorf("procedure returned error code 1 %d: %s", resutCode, resultText)
 	}
-	fmt.Println(billingId)
-	fmt.Println(resutCode)
 
 	return &billingId, nil
+}
+
+// Helper function to safely convert slice to comma-separated string
+func idList(l []types.BaseFilter) string {
+	if len(l) == 0 {
+		return ""
+	}
+	var ids []string
+	for _, v := range l {
+		ids = append(ids, strconv.Itoa(v.ID))
+	}
+	return strings.Join(ids, ",")
 }

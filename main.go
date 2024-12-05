@@ -4,12 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
 	"github.com/JovidYnwa/microCmp/internal/kafka"
-	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -78,30 +76,32 @@ func main() {
 		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
 		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
 
-		dwhWorkerStore     = db.NewDwhWorkerStore(oracleClient)
-		companyWorkerStore = db.NewWorkerStore(pgClient)
+		// dwhWorkerStore     = db.NewDwhWorkerStore(oracleClient)
+		// companyWorkerStore = db.NewWorkerStore(pgClient)
 	)
 
 	// Woker for creating cmp intaration
-	cmpWorker := worker.NewCmpWoker(
-		"Cmp Worker for setting iteration for comp",
-		20*time.Hour,
-		companyWorkerStore,
-		dwhWorkerStore,
-		worker.SetCmpIteration(companyWorkerStore),
-	)
+	// cmpWorker := worker.NewCmpWoker(
+	// 	"Cmp Worker for setting iteration for comp",
+	// 	20*time.Hour,
+	// 	companyWorkerStore,
+	// 	dwhWorkerStore,
+	// 	worker.SetCmpIteration(companyWorkerStore),
+	// )
 
 	// Woker for creating cmp intaration
-	cmpNotifierWorker := worker.NewCmpWoker(
-		"Cmp worker to send notification to subs who did not receive twice",
-		20*time.Second,
-		companyWorkerStore,
-		dwhWorkerStore,
-		worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
-	)
+	// cmpNotifierWorker := worker.NewCmpWoker(
+	// 	"Cmp worker to send notification to subs who did not receive twice",
+	// 	20*time.Second,
+	// 	companyWorkerStore,
+	// 	dwhWorkerStore,
+	// 	worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
+	// )
 
-	go cmpWorker.Start()
-	go cmpNotifierWorker.Start()
+	//Worker to update statistic
+
+	// go cmpWorker.Start()
+	// go cmpNotifierWorker.Start()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
