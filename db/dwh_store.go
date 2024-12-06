@@ -76,7 +76,7 @@ func (s *DwhWorkerStore) GetCompanyStatistic(cmpId int, date time.Time) (*types.
 	dateStr := date.Format("2006-01-02")
 
 	cmp := &types.CmpStatistic{
-		ID:        cmpId,
+		BillingID:        cmpId,
 		StartDate: date,
 	}
 

@@ -100,7 +100,7 @@ func main() {
 
 	cmpUpdateWorker := worker.NewCmpWoker(
 		"Cmp worker to send notification to subs who did not receive twice",
-		10*time.Second,
+		10*time.Minute,
 		companyWorkerStore,
 		dwhWorkerStore,
 		worker.CmpStatisticUpdater(companyWorkerStore, dwhWorkerStore),

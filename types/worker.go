@@ -3,12 +3,13 @@ package types
 import "time"
 
 type ActiveCmp struct {
-	ID      int
-	SmsText any
+	BillingID int
+	SmsText   any
 }
 
 type ActiveCmpIteration struct {
 	ID           int
+	BillingID    int
 	ItarationDay time.Time
 }
 
@@ -19,6 +20,7 @@ type CmpSubscriber struct {
 
 type CmpStatistic struct {
 	ID               int
+	BillingID        int
 	Efficiency       float64
 	SubscriberAmount int
 	StartDate        time.Time
