@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,13 +17,15 @@ import (
 )
 
 type CompanyHandler struct {
-	store db.CompanyStore
+	storePg  db.CompanyStore
+	storeDwh db.DwhStore
 }
 
 // Constructor function for CompanyHandler
-func NewCompanyHandler(store db.CompanyStore) *CompanyHandler {
+func NewCompanyHandler(storePg db.CompanyStore, storeDwh db.DwhStore) *CompanyHandler {
 	return &CompanyHandler{
-		store: store,
+		storePg:  storePg,
+		storeDwh: storeDwh,
 	}
 }
 
@@ -128,7 +131,7 @@ func (s *CompanyHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 			return fmt.Errorf("invalid id given %s", idStr)
 		}
 
-		account, err := s.store.GetAccountByID(id)
+		account, err := s.storePg.GetAccountByID(id)
 		if err != nil {
 			return err
 		}
@@ -143,7 +146,7 @@ func (s *CompanyHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 
 // Get /account
 func (s *CompanyHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAccounts()
+	accounts, err := s.storePg.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -157,7 +160,7 @@ func (s *CompanyHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	account := types.NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
-	if err := s.store.CreateAccount(account); err != nil {
+	if err := s.storePg.CreateAccount(account); err != nil {
 		return err
 	}
 	token, err := createJWT(account)
@@ -175,7 +178,7 @@ func (s *CompanyHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return fmt.Errorf("invalid id given %s", idStr)
 	}
-	if err := s.store.DeleteAccount(id); err != nil {
+	if err := s.storePg.DeleteAccount(id); err != nil {
 		return err
 	}
 	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
@@ -268,11 +271,21 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		return
 	}
-	createCompanyRequest.CmpBillingID = 10
-	if err := h.store.SetCompany(createCompanyRequest); err != nil {
+
+	billingID, err := h.storeDwh.GetDWHCompanyID(r.Context(), createCompanyRequest)
+	if err != nil {
+		//log to file
+		fmt.Printf("error on getting cmp id from biling %s", err)
+		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+	}
+
+	createCompanyRequest.CmpBillingID = int(math.Round(*billingID)) 
+
+	if err := h.storePg.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
 		return
 	}
+
 	WriteJSON(w, http.StatusCreated, createCompanyRequest)
 }
 
@@ -283,13 +296,15 @@ func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request
 	}
 	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
 	if err != nil || pageSize < 1 {
-		pageSize = 10 // Default page size
+		pageSize = 10
 	}
 
-	paginatedResponse, err := h.store.GetCompany(page, pageSize)
+	paginatedResponse, err := h.storePg.GetCompanies(page, pageSize)
+	// paginatedResponse, err := h.store.GetCompany(page, pageSize)
+
 	if err != nil {
-		fmt.Println(err)
-		WriteJSON(w, http.StatusOK, paginatedResponse)
+		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
 	}
 	WriteJSON(w, http.StatusOK, paginatedResponse)
 }
@@ -318,7 +333,7 @@ func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Reque
 		pageSize = 10 // Default page size
 	}
 
-	paginatedResponse, err := h.store.GetCompanyType(page, pageSize)
+	paginatedResponse, err := h.storePg.GetCompanyType(page, pageSize)
 	if err != nil {
 		fmt.Println(err)
 		WriteJSON(w, http.StatusOK, paginatedResponse)
@@ -335,11 +350,15 @@ func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	s, err := h.store.GetCompanyByID(companyID)
+	s, err := h.storePg.GetCompanyByID(companyID)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	WriteJSON(w, http.StatusOK, s)
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
 }

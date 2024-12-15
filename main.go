@@ -8,6 +8,7 @@ import (
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
+	"github.com/JovidYnwa/microCmp/internal/kafka"
 	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -66,9 +67,14 @@ func main() {
 		}
 	}()
 
+	kafkaproducer := kafka.NewProducerFromEnv()
+	defer kafkaproducer.Close()
+
 	var (
-		companyStore         = db.NewPgCompanyStore(pgClient)
-		companyHandler       = api.NewCompanyHandler(companyStore)
+		companyPgStore  = db.NewPgCompanyStore(pgClient)
+		companyDwhStore = db.NewDwhWorkerStore(oracleClient)
+		companyHandler  = api.NewCompanyHandler(companyPgStore, companyDwhStore)
+
 		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
 		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
 
@@ -76,7 +82,6 @@ func main() {
 		companyWorkerStore = db.NewWorkerStore(pgClient)
 	)
 
-	// Woker for creating cmp intaration
 	cmpWorker := worker.NewCmpWoker(
 		"Cmp Worker for setting iteration for comp",
 		20*time.Hour,
@@ -85,17 +90,27 @@ func main() {
 		worker.SetCmpIteration(companyWorkerStore),
 	)
 
-	// Woker for creating cmp intaration
 	cmpNotifierWorker := worker.NewCmpWoker(
 		"Cmp worker to send notification to subs who did not receive twice",
-		20*time.Second,
+		20*time.Hour,
 		companyWorkerStore,
 		dwhWorkerStore,
 		worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
 	)
 
+	cmpUpdateWorker := worker.NewCmpWoker(
+		"Cmp worker to send notification to subs who did not receive twice",
+		10*time.Minute,
+		companyWorkerStore,
+		dwhWorkerStore,
+		worker.CmpStatisticUpdater(companyWorkerStore, dwhWorkerStore),
+	)
+
+	//Worker to update statistic
+
 	go cmpWorker.Start()
 	go cmpNotifierWorker.Start()
+	go cmpUpdateWorker.Start()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
@@ -126,6 +141,7 @@ func main() {
 	//Wokers
 	// work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
 	// go work.Start()
+	// After successfully creating the company, send a message to Kafka
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)

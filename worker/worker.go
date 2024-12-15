@@ -68,7 +68,7 @@ func SetCmpIteration(dbPg db.WorkerMethod) func() error {
 
 		for _, company := range companies {
 			cmp := types.CmpStatistic{
-				ID:               company.ID,
+				BillingID:        company.BillingID,
 				StartDate:        time.Now(),
 				Efficiency:       0,
 				SubscriberAmount: 0,
@@ -76,10 +76,10 @@ func SetCmpIteration(dbPg db.WorkerMethod) func() error {
 
 			_, err := dbPg.InsertCmpStatistic(cmp)
 			if err != nil {
-				return fmt.Errorf("inserting company %d statistics: %w", company.ID, err)
+				return fmt.Errorf("inserting company %d statistics: %w", company.BillingID, err)
 			}
 
-			log.Printf("Company statistics created for ID: %d", company.ID)
+			log.Printf("Company statistics created for ID: %d", company.BillingID)
 		}
 		return nil
 	}
@@ -94,12 +94,54 @@ func CmpNotifier(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 		}
 
 		for _, company := range companies {
-			subs, err := dbDwh.GetCmpSubscribersNotify(company.ID)
+			subs, err := dbDwh.GetCmpSubscribersNotify(company.BillingID)
 			if err != nil {
 				return fmt.Errorf("getting subscribers GetCmpSubscribersNotify: %w", err)
 			}
-			fmt.Printf("cmpID=%d subsciber amount = %d\n", company.ID, len(subs))
+			fmt.Printf("cmpID=%d subsciber amount = %d\n", company.BillingID, len(subs))
 		}
 		return nil
 	}
 }
+
+// Task 3: CmpInerationStatistic function
+func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
+	return func() error {
+		companies, err := dbPg.GetActiveCompanyItarations()
+		if err != nil {
+			return fmt.Errorf("getting active company iterations: %w", err)
+		}
+
+		for _, company := range companies {
+			statisticData, err := dbDwh.GetCompanyStatistic(company.BillingID, company.ItarationDay)
+			if err != nil {
+				return fmt.Errorf("getting statistics for company %d: %w", company.BillingID, err)
+			}
+
+			if statisticData == nil {
+				fmt.Printf("No statistics found for company ID %d on %s\n",
+					company.BillingID, company.ItarationDay.Format("2006-01-02"))
+				continue
+			}
+
+			fmt.Printf("Updating company ID %d - Subscribers: %d, date: %s,Efficiency: %.2f%%\n",
+				company.ID, statisticData.SubscriberAmount, statisticData.StartDate, statisticData.Efficiency)
+
+			if err = dbPg.UpdateIterationStatistic(company.ID, statisticData); err != nil {
+				// Log the error and continue to the next company
+				log.Printf("Error updating statistics for company ID %d (BillingID: %d) for date %s: %v\n",
+				company.ID, 
+				company.BillingID, 
+				statisticData.StartDate.Format("2006-01-02"),
+				err)
+				continue
+			}
+
+			fmt.Printf("Successfully updated company ID %d statistics\n", company.ID)
+		}
+		return nil
+	}
+}
+
+
+// Task 3: CmpStatistic function only fomr Pg Db (company_repetion) not useing db

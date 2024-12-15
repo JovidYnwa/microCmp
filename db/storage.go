@@ -17,11 +17,13 @@ type CompanyStore interface {
 	GetAccountByID(int) (*types.Account, error)
 
 	GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error)
-	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)
-	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
+	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)	
+	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
 
+	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
 	SetCompanyType(c types.Company) (*int, error)
 	SetCompany(cmp *types.CreateCompanyReq) error
+	//UpdateCompanyIteration(comID int) error
 }
 
 type PgCompanyStore struct {
@@ -127,41 +129,47 @@ func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 }
 
 func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error) {
-	// Count total number of companies
+	// First, verify your count query matches your main query conditions
 	var totalCount int
-	err := s.db.QueryRow(`
-	    select count(id) from company_type`).Scan(&totalCount)
+	countQuery := `
+        SELECT COUNT(DISTINCT ct.id) 
+        FROM company_type ct
+        JOIN company c ON c.company_type_id = ct.id
+        JOIN company_repetion cr ON cr.company_id = c.id`
+
+	err := s.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("count query error: %w", err)
 	}
 
-	// Calculate pagination values
+	// Calculate pagination
 	totalPages := (totalCount + pageSize - 1) / pageSize
 	offset := (page - 1) * pageSize
 
-	// Query for paginated results
+	// Main query remains the same
 	query := `
-		SELECT 
-			ct.id,
-			ct.cmp_name,
-			COUNT(cr.id) AS repetition_count,
-			SUM(cr.sub_amount) AS total_sub_amount,
-			ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage
-		FROM 
-			company_repetion cr
-			JOIN company c ON cr.company_id = c.id
-			JOIN company_type ct ON c.company_type_id = ct.id
-		GROUP BY 
-			ct.id, ct.cmp_name
-		order by ct.id
-		LIMIT $1 OFFSET $2`
+        SELECT 
+            ct.id,
+            ct.cmp_name,
+            COUNT(cr.id) AS repetition_count,
+            SUM(cr.sub_amount) AS total_sub_amount,
+            ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage
+        FROM 
+            company_repetion cr
+            JOIN company c ON cr.company_id = c.id
+            JOIN company_type ct ON c.company_type_id = ct.id
+        GROUP BY 
+            ct.id, ct.cmp_name
+        ORDER BY ct.id
+        LIMIT $1 OFFSET $2`
+
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("main query error: %w", err)
 	}
 	defer rows.Close()
 
-	companies := []*types.CompanyTypeResp{}
+	companies := make([]*types.CompanyTypeResp, 0, pageSize)
 	for rows.Next() {
 		cmp := new(types.CompanyTypeResp)
 		err := rows.Scan(
@@ -172,10 +180,13 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 			&cmp.Efficiency,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("row scan error: %w", err)
 		}
-
 		companies = append(companies, cmp)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
 	}
 
 	return &types.PaginatedResponse{
@@ -195,6 +206,7 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 	if err != nil {
 		return nil, err
 	}
+	fmt.Print(totalCount)
 
 	// Calculate pagination values
 	totalPages := (totalCount + pageSize - 1) / pageSize
@@ -225,6 +237,79 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 			(c.cmp_desc ->> 'startTime')::TIMESTAMP,  
 			(c.cmp_desc ->> 'durationDay')::INTEGER
 		LIMIT $1 OFFSET $2`
+	rows, err := s.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	companies := []*types.CompanyResp{}
+	for rows.Next() {
+		cmp := new(types.CompanyResp)
+		err := rows.Scan(
+			&cmp.ID,
+			&cmp.Name,
+			&cmp.CmpDesc,
+			&cmp.Efficiency,
+			&cmp.SubsAmount,
+			&cmp.StartDate,
+			&cmp.EndDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		companies = append(companies, cmp)
+	}
+
+	return &types.PaginatedResponse{
+		TotalCount:  totalCount,
+		TotalPages:  totalPages,
+		CurrentPage: page,
+		PageSize:    pageSize,
+		Data:        companies,
+	}, nil
+}
+
+func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+	// Count total number of companies
+	var totalCount int
+	err := s.db.QueryRow(`
+	    select count(id) from company`).Scan(&totalCount)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Print(totalCount)
+
+	// Calculate pagination values
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	offset := (page - 1) * pageSize
+
+	// Query for paginated results
+	query := `
+		SELECT 
+		c.id,
+		c.cmp_desc ->> 'name' AS name,
+		c.cmp_desc ->> 'desc' AS description,
+		ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage,
+		SUM(cr.sub_amount) AS total_sub_amount,
+    TO_CHAR((c.cmp_desc ->> 'startTime')::TIMESTAMP, 'DD.MM.YYYY') AS start_date,
+		TO_CHAR(
+			(c.cmp_desc ->> 'startTime')::TIMESTAMP + 
+			(c.cmp_desc ->> 'durationDay')::INTEGER * INTERVAL '1 day',
+			'DD.MM.YYYY'
+		) AS end_date
+	FROM 
+		company c
+	left JOIN 
+		company_repetion cr ON c.id = cr.company_id
+	GROUP BY 
+		c.id,                                
+		c.cmp_desc ->> 'name',
+		c.cmp_desc ->> 'desc',
+		(c.cmp_desc ->> 'startTime')::TIMESTAMP,
+		(c.cmp_desc ->> 'durationDay')::INTEGER
+	LIMIT $1 OFFSET $2`
 	rows, err := s.db.Query(query, pageSize, offset)
 	if err != nil {
 		return nil, err
@@ -366,8 +451,8 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 	_, err = s.db.Exec(
 		query,
 		cmp.CompanyType,
-		cmp.StartDate,
-		cmp.EndDate,
+		cmp.StartDate.Time,
+		cmp.EndDate.Time,
 		cmp.CmpBillingID,
 		json.RawMessage(cmpJsonData),
 		json.RawMessage(filterJsonData),
@@ -386,8 +471,8 @@ func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, 
 		select cr.id,
 		cr.efficiency,
 		cr.sub_amount,
-		TO_CHAR(cr.start_date::TIMESTAMP, 'dd.mm.yyyy'),
-		TO_CHAR(cr.end_date::TIMESTAMP, 'dd.mm.yyyy')
+		TO_CHAR(cr.start_date::TIMESTAMP, 'dd.mm.yyyy')
+		--TO_CHAR(cr.end_date::TIMESTAMP, 'dd.mm.yyyy')
 		from company_repetion cr
 		where cr.company_id = $1
 	`
@@ -405,7 +490,7 @@ func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, 
 			&cmp.Efficiency,
 			&cmp.SubsAmount,
 			&cmp.StartDate,
-			&cmp.EndDate,
+			//&cmp.EndDate,
 		)
 		if err != nil {
 			return nil, err

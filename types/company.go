@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -45,8 +47,9 @@ type CompanyInfo struct {
 	PackSpent        TrafficSpent `json:"packSpent"`        //По использованию мегабайтов
 	ARPULimits       ARPULimit    `json:"arpuLimits"`       //По арпу
 	Region           []BaseFilter `json:"region"`           //По активным услугам
-	SimDate          time.Time    `json:"start"`            //По новому подключению симкарты
+	SimDate          CustomTime   `json:"start"`            //По новому подключению симкарты
 	Service          []BaseFilter `json:"service"`          //По активным услугам
+	ServiceOff       []BaseFilter `json:"serviceOff"`       //По не активным услугам
 	WheelUsage       bool         `json:"usingWheel"`       //По использованию колеса подарков
 }
 
@@ -71,8 +74,8 @@ type CompanyAction struct {
 type CreateCompanyReq struct {
 	CompanyType  int           `json:"companyType"`
 	CmpBillingID int           `json:"cmpBillingId"`
-	StartDate    time.Time     `json:"startDate"`
-	EndDate      time.Time     `json:"endDate"`
+	StartDate    CustomTime    `json:"startDate"`
+	EndDate      CustomTime    `json:"endDate"`
 	Company      Company       `json:"company"`
 	CompanyInfo  CompanyInfo   `json:"companyInfo"`
 	SendSms      SmsBefore     `json:"smsInfo"`
@@ -80,10 +83,10 @@ type CreateCompanyReq struct {
 }
 
 type CompanyDetail struct {
-	Efficiency       float64   `json:"efficiency"`
-	SubscriberAmount int64     `json:"subsAmount"`
-	StartDate        time.Time `json:"startDate"`
-	EndDate          time.Time `json:"endDate"`
+	Efficiency       float64    `json:"efficiency"`
+	SubscriberAmount int64      `json:"subsAmount"`
+	StartDate        CustomTime `json:"startDate"`
+	EndDate          CustomTime `json:"endDate"`
 }
 
 type CompanyTypeResp struct {
@@ -95,15 +98,15 @@ type CompanyTypeResp struct {
 }
 
 type CompanyResp struct {
-	ID         int     `json:"id"`
-	NaviUser   string  `json:"naviUser"`
-	CmpDesc    string  `json:"desc"`
-	Name       string  `json:"name"`
-	CmpLunched int     `json:"cmpLunched"`
-	SubsAmount int     `json:"subAmount"`
-	Efficiency float64 `json:"efficiency"`
-	StartDate  string  `json:"startDate"`
-	EndDate    string  `json:"endDate"`
+	ID         int      `json:"id"`
+	NaviUser   string   `json:"naviUser"`
+	CmpDesc    string   `json:"desc"`
+	Name       string   `json:"name"`
+	CmpLunched int      `json:"cmpLunched"`
+	SubsAmount *int     `json:"subAmount"`
+	Efficiency *float64 `json:"efficiency"`
+	StartDate  *string  `json:"startDate"`
+	EndDate    *string  `json:"endDate"`
 }
 
 type CompanyDetailResp struct {
@@ -112,4 +115,28 @@ type CompanyDetailResp struct {
 	SubsAmount int     `json:"subAmount"`
 	StartDate  string  `json:"startDate"`
 	EndDate    string  `json:"EndDate"`
+}
+
+type CustomTime struct {
+	time.Time
+}
+
+func (ct *CustomTime) UnmarshalJSON(b []byte) error {
+	str := strings.Trim(string(b), `"`) // Remove surrounding quotes
+	formats := []string{
+		"2006-01-02T15:04:05Z07:00", // RFC3339 with timezone
+		"2006-01-02T15:04",          // Without seconds or timezone
+	}
+
+	var parseErr error
+	for _, format := range formats {
+		if t, err := time.Parse(format, str); err == nil {
+			ct.Time = t
+			return nil
+		} else {
+			parseErr = err
+		}
+	}
+
+	return fmt.Errorf("invalid time format: %s, error: %w", str, parseErr)
 }

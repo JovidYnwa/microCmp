@@ -105,7 +105,7 @@ func (s *DwhFilterStore) GetSubsStatuses() ([]*types.BaseFilter, error) {
 
 func (s *DwhFilterStore) GetServs(ctx context.Context) ([]*types.BaseFilter, error) {
 	var (
-		inputIDVal int = -1
+		inputIDVal int = 773
 		cursor     go_ora.RefCursor
 		resultCode int
 		resultText string
