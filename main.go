@@ -20,6 +20,8 @@ import (
 
 func main() {
 
+	//TODO check pagination, job for updating statistic, sending notification function
+
 	// load .env file
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -83,7 +85,7 @@ func main() {
 	)
 
 	cmpWorker := worker.NewCmpWoker(
-		"Cmp Worker for setting iteration for comp",
+		"Worker for setting new iteration for cmp",
 		20*time.Hour,
 		companyWorkerStore,
 		dwhWorkerStore,
@@ -91,7 +93,7 @@ func main() {
 	)
 
 	cmpNotifierWorker := worker.NewCmpWoker(
-		"Cmp worker to send notification to subs who did not receive twice",
+		"Worker to send notification to subs who did not receive twice",
 		20*time.Hour,
 		companyWorkerStore,
 		dwhWorkerStore,
@@ -99,7 +101,7 @@ func main() {
 	)
 
 	cmpUpdateWorker := worker.NewCmpWoker(
-		"Cmp worker to send notification to subs who did not receive twice",
+		"Worker to update statistics",
 		10*time.Minute,
 		companyWorkerStore,
 		dwhWorkerStore,

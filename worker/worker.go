@@ -144,4 +144,4 @@ func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 }
 
 
-// Task 3: CmpStatistic function only fomr Pg Db (company_repetion) not useing db
+// Task 3: CmpStatistic function only fomr Pg Db (company_repetion) not using db
