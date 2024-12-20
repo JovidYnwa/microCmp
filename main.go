@@ -4,12 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/JovidYnwa/microCmp/api"
 	"github.com/JovidYnwa/microCmp/db"
 	"github.com/JovidYnwa/microCmp/internal/kafka"
-	"github.com/JovidYnwa/microCmp/worker"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
