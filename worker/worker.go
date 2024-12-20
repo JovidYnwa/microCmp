@@ -105,7 +105,7 @@ func CmpNotifier(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 }
 
 // Task 3: CmpInerationStatistic function
-func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
+func CmpItarationStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 	return func() error {
 		companies, err := dbPg.GetActiveCompanyItarations()
 		if err != nil {
@@ -130,10 +130,10 @@ func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 			if err = dbPg.UpdateIterationStatistic(company.ID, statisticData); err != nil {
 				// Log the error and continue to the next company
 				log.Printf("Error updating statistics for company ID %d (BillingID: %d) for date %s: %v\n",
-				company.ID, 
-				company.BillingID, 
-				statisticData.StartDate.Format("2006-01-02"),
-				err)
+					company.ID,
+					company.BillingID,
+					statisticData.StartDate.Format("2006-01-02"),
+					err)
 				continue
 			}
 
@@ -143,5 +143,14 @@ func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
 	}
 }
 
-
-// Task 3: CmpStatistic function only fomr Pg Db (company_repetion) not using db
+// Task 4: Dman bro we do not need this task scince select will do it haha
+func CmpStatisticUpdater(dbPg db.WorkerMethod, dbDwh db.DwhStore) func() error {
+	return func() error {
+		companies, err := dbPg.GetActiveCompanyItarations()
+		if err != nil {
+			return fmt.Errorf("getting active company iterations: %w", err)
+		}
+		fmt.Println(companies)
+		return nil
+	}
+}

@@ -28,25 +28,25 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	dwhConfigs := db.DatabaseConfig{
-		Type:     os.Getenv("DWH_DB_TYPE"),
-		Name:     os.Getenv("DWH_DB_NAME"),
-		Host:     os.Getenv("DWH_DB_HOST"),
-		Port:     os.Getenv("DWH_DB_PORT"),
-		User:     os.Getenv("DWH_DB_USER"),
-		Password: os.Getenv("DWH_DB_PASSWORD"),
-	}
+	// dwhConfigs := db.DatabaseConfig{
+	// 	Type:     os.Getenv("DWH_DB_TYPE"),
+	// 	Name:     os.Getenv("DWH_DB_NAME"),
+	// 	Host:     os.Getenv("DWH_DB_HOST"),
+	// 	Port:     os.Getenv("DWH_DB_PORT"),
+	// 	User:     os.Getenv("DWH_DB_USER"),
+	// 	Password: os.Getenv("DWH_DB_PASSWORD"),
+	// }
 
-	oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
-	if err != nil {
-		log.Fatal("Failed to connect to the database:", err)
-	}
-	defer func() {
-		err := oracleClient.Close()
-		if err != nil {
-			log.Fatalf("Can't close go-ora connection: %s", err)
-		}
-	}()
+	// oracleClient, err := db.ConnectToOracleGoOra(dwhConfigs)
+	// if err != nil {
+	// 	log.Fatal("Failed to connect to the database:", err)
+	// }
+	// defer func() {
+	// 	err := oracleClient.Close()
+	// 	if err != nil {
+	// 		log.Fatalf("Can't close go-ora connection: %s", err)
+	// 	}
+	// }()
 
 	pgConfigs := db.DatabaseConfig{
 		Type:     os.Getenv("DB_TYPE"),
@@ -73,57 +73,58 @@ func main() {
 	defer kafkaproducer.Close()
 
 	var (
-		companyPgStore  = db.NewPgCompanyStore(pgClient)
-		companyDwhStore = db.NewDwhWorkerStore(oracleClient)
-		companyHandler  = api.NewCompanyHandler(companyPgStore, companyDwhStore)
+		companyPgStore = db.NewPgCompanyStore(pgClient)
+		// companyDwhStore = db.NewDwhWorkerStore(oracleClient)
+		// companyHandler  = api.NewCompanyHandler(companyPgStore, companyDwhStore)
+		companyHandler = api.NewCompanyHandler(companyPgStore, nil)
 
-		companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
-		companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
+		// companyFilterSotre   = db.NewOracleMainScreenStore(oracleClient)
+		// companyFilterHandler = api.NewCompanyFilterHandler(companyFilterSotre)
 
-		dwhWorkerStore     = db.NewDwhWorkerStore(oracleClient)
-		companyWorkerStore = db.NewWorkerStore(pgClient)
+		// dwhWorkerStore     = db.NewDwhWorkerStore(oracleClient)
+		// companyWorkerStore = db.NewWorkerStore(pgClient)
 	)
 
-	cmpWorker := worker.NewCmpWoker(
-		"Worker for setting new iteration for cmp",
-		20*time.Hour,
-		companyWorkerStore,
-		dwhWorkerStore,
-		worker.SetCmpIteration(companyWorkerStore),
-	)
+	// cmpWorker := worker.NewCmpWoker(
+	// 	"Worker for setting new iteration for cmp",
+	// 	20*time.Hour,
+	// 	companyWorkerStore,
+	// 	dwhWorkerStore,
+	// 	worker.SetCmpIteration(companyWorkerStore),
+	// )
 
-	cmpNotifierWorker := worker.NewCmpWoker(
-		"Worker to send notification to subs who did not receive twice",
-		20*time.Hour,
-		companyWorkerStore,
-		dwhWorkerStore,
-		worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
-	)
+	// cmpNotifierWorker := worker.NewCmpWoker(
+	// 	"Worker to send notification to subs who did not receive twice",
+	// 	20*time.Hour,
+	// 	companyWorkerStore,
+	// 	dwhWorkerStore,
+	// 	worker.CmpNotifier(companyWorkerStore, dwhWorkerStore),
+	// )
 
-	cmpUpdateWorker := worker.NewCmpWoker(
-		"Worker to update statistics",
-		10*time.Minute,
-		companyWorkerStore,
-		dwhWorkerStore,
-		worker.CmpStatisticUpdater(companyWorkerStore, dwhWorkerStore),
-	)
+	// cmpIntarationUpdateWorker := worker.NewCmpWoker(
+	// 	"Worker to update statistics company_repetion table",
+	// 	10*time.Minute,
+	// 	companyWorkerStore,
+	// 	dwhWorkerStore,
+	// 	worker.CmpIterationStatisticUpdater(companyWorkerStore, dwhWorkerStore),
+	// )
 
 	//Worker to update statistic
 
-	go cmpWorker.Start()
-	go cmpNotifierWorker.Start()
-	go cmpUpdateWorker.Start()
+	// go cmpWorker.Start()
+	// go cmpNotifierWorker.Start()
+	// go cmpUpdateWorker.Start()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
-	router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
-	router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
-	router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
-	router.HandleFunc("/filter/sim/types", companyFilterHandler.HandleSimStatus)
-	router.HandleFunc("/filter/device/types", companyFilterHandler.HandleDivceTypes)
+	// router.HandleFunc("/filter/trpls", companyFilterHandler.HandleListTrpls)
+	// router.HandleFunc("/filter/regions", companyFilterHandler.HandleRgionsrpls)
+	// router.HandleFunc("/filter/subs/status", companyFilterHandler.HandleSubscriberStatus)
+	// router.HandleFunc("/filter/servs", companyFilterHandler.HandleServList)
+	// router.HandleFunc("/filter/sim/types", companyFilterHandler.HandleSimStatus)
+	// router.HandleFunc("/filter/device/types", companyFilterHandler.HandleDivceTypes)
 
-	router.HandleFunc("/prize/list", companyFilterHandler.HandlePrizeList)
-	router.HandleFunc("/action/list", companyFilterHandler.HandleActionCmp)
+	// router.HandleFunc("/prize/list", companyFilterHandler.HandlePrizeList)
+	// router.HandleFunc("/action/list", companyFilterHandler.HandleActionCmp)
 
 	router.HandleFunc("/company-type", companyHandler.HandleGetCompanies)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany) //Post

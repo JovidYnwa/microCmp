@@ -135,11 +135,11 @@ func (s *WorkerStore) InsertCmpStatistic(stat types.CmpStatistic) (*types.CmpSta
 }
 
 func (s *WorkerStore) UpdateIterationStatistic(cmpId int, cmpIter *types.CmpStatistic) error {
-    if cmpIter == nil {
-        return fmt.Errorf("nil statistics provided")
-    }
+	if cmpIter == nil {
+		return fmt.Errorf("nil statistics provided")
+	}
 
-    query := `
+	query := `
         UPDATE company_repetion 
         SET 
             efficiency = $1,
@@ -148,21 +148,21 @@ func (s *WorkerStore) UpdateIterationStatistic(cmpId int, cmpIter *types.CmpStat
         AND TO_CHAR(start_date AT TIME ZONE 'UTC', 'DD.MM.YYYY') = TO_CHAR($4 AT TIME ZONE 'UTC', 'DD.MM.YYYY')
         RETURNING company_id`
 
-    var updatedID int
-    err := s.db.QueryRow(query,
-        cmpIter.Efficiency,
-        cmpIter.SubscriberAmount,
-        cmpId,  
-        cmpIter.StartDate,
-    ).Scan(&updatedID)
+	var updatedID int
+	err := s.db.QueryRow(query,
+		cmpIter.Efficiency,
+		cmpIter.SubscriberAmount,
+		cmpId,
+		cmpIter.StartDate,
+	).Scan(&updatedID)
 
-    if err != nil {
-        if err == sql.ErrNoRows {
-            return fmt.Errorf("no matching row found for company ID %v on date %v", cmpId, 
-                cmpIter.StartDate.Format("2006-01-02"))
-        }
-        return fmt.Errorf("update failed for company ID %v: %w", cmpIter.BillingID, err)
-    }
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("no matching row found for company ID %v on date %v", cmpId,
+				cmpIter.StartDate.Format("2006-01-02"))
+		}
+		return fmt.Errorf("update failed for company ID %v: %w", cmpIter.BillingID, err)
+	}
 
-    return nil
+	return nil
 }

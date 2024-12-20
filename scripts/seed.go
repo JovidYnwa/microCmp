@@ -36,15 +36,15 @@ func main() {
 
 	fmt.Println("Successfully connected to the database!")
 
-	if err := seedCompanyType(db); err != nil {
-		log.Fatalf("Failed to seed company: %v", err)
-	}
-	fmt.Println("Company table seeded successfully!")
+	// if err := seedCompanyType(db); err != nil {
+	// 	log.Fatalf("Failed to seed company: %v", err)
+	// }
+	// fmt.Println("Company table seeded successfully!")
 
-	if err := seedCompany(db); err != nil {
-		log.Fatalf("Failed to seed company_info: %v", err)
-	}
-	fmt.Println("Company info seeded successfully!")
+	// if err := seedCompany(db); err != nil {
+	// 	log.Fatalf("Failed to seed company_info: %v", err)
+	// }
+	// fmt.Println("Company info seeded successfully!")
 
 	if err := seedCompanyRepetition(db); err != nil {
 		log.Fatalf("Failed to seed company_repetition: %v", err)
