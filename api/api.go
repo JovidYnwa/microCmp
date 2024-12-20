@@ -290,17 +290,24 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    cmpTypeID, ok := vars["type_id"]
+    if !ok || cmpTypeID == ""{
+        WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: "type_id is required in the URL"})
+        return
+    }
+
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
 		page = 1
 	}
+
 	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
 	if err != nil || pageSize < 1 {
 		pageSize = 10
 	}
 
-	paginatedResponse, err := h.storePg.GetCompanies(page, pageSize)
-	// paginatedResponse, err := h.store.GetCompany(page, pageSize)
+	paginatedResponse, err := h.storePg.GetCompanies(page, pageSize, cmpTypeID)
 
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -322,7 +329,7 @@ func validateCreateCompanyRequest(req *types.CreateCompanyReq) error {
 }
 
 // Get /account /companies?page=1&pageSize=10
-func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Request) {
+func (h *CompanyHandler) HandleGetCompanyTypes(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for pagination
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
@@ -343,7 +350,7 @@ func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Reque
 
 func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.Request) {
 	companyIDStr := mux.Vars(r)["id"]
-
+	fmt.Printf("cmpanyIDStr = %v, %T", companyIDStr, companyIDStr)
 	companyID, err := strconv.Atoi(companyIDStr)
 	if err != nil {
 		WriteJSON(w, http.StatusBadRequest, "Invalid company ID")

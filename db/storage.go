@@ -17,8 +17,8 @@ type CompanyStore interface {
 	GetAccountByID(int) (*types.Account, error)
 
 	GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error)
-	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)	
-	GetCompanies(page, pageSize int) (*types.PaginatedResponse, error)
+	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)
+	GetCompanies(page, pageSize int, cmpType string) (*types.PaginatedResponse, error)
 
 	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
 	SetCompanyType(c types.Company) (*int, error)
@@ -271,7 +271,7 @@ func (s *PgCompanyStore) GetCompany(page, pageSize int) (*types.PaginatedRespons
 	}, nil
 }
 
-func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedResponse, error) {
+func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*types.PaginatedResponse, error) {
 	// Count total number of companies
 	var totalCount int
 	err := s.db.QueryRow(`
@@ -279,8 +279,6 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 	if err != nil {
 		return nil, err
 	}
-	fmt.Print(totalCount)
-
 	// Calculate pagination values
 	totalPages := (totalCount + pageSize - 1) / pageSize
 	offset := (page - 1) * pageSize
@@ -303,6 +301,7 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int) (*types.PaginatedRespo
 		company c
 	left JOIN 
 		company_repetion cr ON c.id = cr.company_id
+	WHERE c.company_type_id = 1
 	GROUP BY 
 		c.id,                                
 		c.cmp_desc ->> 'name',

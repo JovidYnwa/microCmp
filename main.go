@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	//TODO check pagination, job for updating statistic, sending notification function
+	//TODO check pagination, sending notification function
 
 	// load .env file
 	err := godotenv.Load(".env")
@@ -124,9 +124,9 @@ func main() {
 	// router.HandleFunc("/prize/list", companyFilterHandler.HandlePrizeList)
 	// router.HandleFunc("/action/list", companyFilterHandler.HandleActionCmp)
 
-	router.HandleFunc("/company-type", companyHandler.HandleGetCompanies)
-	router.HandleFunc("/company", companyHandler.HandleCreateCompany) //Post
-	router.HandleFunc("/companies/{type_id:[0-9]+}", companyHandler.HandleGetCompany)
+	router.HandleFunc("/company-type", companyHandler.HandleGetCompanyTypes)
+	router.HandleFunc("/company", companyHandler.HandleCreateCompany).Methods("POST")
+	router.HandleFunc("/companies/{type_id:[0-9]*}", companyHandler.HandleGetCompany).Methods("GET")
 
 	router.HandleFunc("/company/{id:[0-9]+}", companyHandler.HandleGetCompanyDetail)
 
@@ -138,11 +138,6 @@ func main() {
 	})
 
 	handler := c.Handler(router)
-
-	//Wokers
-	// work := worker.NewCmpWoker("Cheaking unprocced comt", 20*time.Second, companyWorkerStore, dwhWorkerStore)
-	// go work.Start()
-	// After successfully creating the company, send a message to Kafka
 
 	log.Println("Json API server running on port: ", 3001)
 	http.ListenAndServe(":3001", handler)
