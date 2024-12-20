@@ -279,7 +279,7 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 	}
 
-	createCompanyRequest.CmpBillingID = int(math.Round(*billingID)) 
+	createCompanyRequest.CmpBillingID = int(math.Round(*billingID))
 
 	if err := h.storePg.SetCompany(createCompanyRequest); err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to store company info: " + err.Error()})
@@ -289,13 +289,13 @@ func (h *CompanyHandler) HandleCreateCompany(w http.ResponseWriter, r *http.Requ
 	WriteJSON(w, http.StatusCreated, createCompanyRequest)
 }
 
-func (h *CompanyHandler) HandleGetCompany(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    cmpTypeID, ok := vars["type_id"]
-    if !ok || cmpTypeID == ""{
-        WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: "type_id is required in the URL"})
-        return
-    }
+func (h *CompanyHandler) HandleGetCompanies(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cmpTypeID, ok := vars["type_id"]
+	if !ok || cmpTypeID == "" {
+		WriteJSON(w, http.StatusBadRequest, ErrorResponse{Error: "type_id is required in the URL"})
+		return
+	}
 
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
@@ -321,10 +321,7 @@ func validateCreateCompanyRequest(req *types.CreateCompanyReq) error {
 	if req.Company.CmpName == "" {
 		return fmt.Errorf("company name is required")
 	}
-	// if req.Company.Duration <= 0 {
-	// 	return fmt.Errorf("duration must be positive")
-	// }
-	// Add more validation as needed
+
 	return nil
 }
 

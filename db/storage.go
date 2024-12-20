@@ -20,7 +20,7 @@ type CompanyStore interface {
 	GetCompany(page, pageSize int) (*types.PaginatedResponse, error)
 	GetCompanies(page, pageSize int, cmpType string) (*types.PaginatedResponse, error)
 
-	GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error)
+	GetCompanyByID(cmpID int) ([]*types.CompanyDetailResp, error)
 	SetCompanyType(c types.Company) (*int, error)
 	SetCompany(cmp *types.CreateCompanyReq) error
 	//UpdateCompanyIteration(comID int) error
@@ -275,10 +275,14 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*type
 	// Count total number of companies
 	var totalCount int
 	err := s.db.QueryRow(`
-	    select count(id) from company`).Scan(&totalCount)
+		SELECT 
+			COUNT(id) 
+			FROM company WHERE company_type_id = $1`, cmpType).Scan(&totalCount)
+	
 	if err != nil {
 		return nil, err
 	}
+
 	// Calculate pagination values
 	totalPages := (totalCount + pageSize - 1) / pageSize
 	offset := (page - 1) * pageSize
@@ -286,30 +290,31 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*type
 	// Query for paginated results
 	query := `
 		SELECT 
-		c.id,
-		c.cmp_desc ->> 'name' AS name,
-		c.cmp_desc ->> 'desc' AS description,
-		ROUND(AVG(cr.efficiency)::NUMERIC * 100.0, 2) AS average_efficiency_percentage,
-		SUM(cr.sub_amount) AS total_sub_amount,
-    TO_CHAR((c.cmp_desc ->> 'startTime')::TIMESTAMP, 'DD.MM.YYYY') AS start_date,
-		TO_CHAR(
-			(c.cmp_desc ->> 'startTime')::TIMESTAMP + 
-			(c.cmp_desc ->> 'durationDay')::INTEGER * INTERVAL '1 day',
-			'DD.MM.YYYY'
-		) AS end_date
-	FROM 
-		company c
-	left JOIN 
-		company_repetion cr ON c.id = cr.company_id
-	WHERE c.company_type_id = 1
-	GROUP BY 
-		c.id,                                
-		c.cmp_desc ->> 'name',
-		c.cmp_desc ->> 'desc',
-		(c.cmp_desc ->> 'startTime')::TIMESTAMP,
-		(c.cmp_desc ->> 'durationDay')::INTEGER
-	LIMIT $1 OFFSET $2`
-	rows, err := s.db.Query(query, pageSize, offset)
+			c.id,
+			c.cmp_desc ->> 'name' AS name,
+			c.cmp_desc ->> 'desc' AS description,
+			ROUND(COALESCE(AVG(cr.efficiency)::NUMERIC * 100.0, 0), 2) AS average_efficiency_percentage,
+			COALESCE(SUM(cr.sub_amount), 0) AS total_sub_amount,
+			TO_CHAR(COALESCE((c.cmp_desc ->> 'startTime')::TIMESTAMP, NOW()), 'DD.MM.YYYY') AS start_date,
+			TO_CHAR(
+				COALESCE((c.cmp_desc ->> 'startTime')::TIMESTAMP, NOW()) + 
+				COALESCE((c.cmp_desc ->> 'durationDay')::INTEGER, 0) * INTERVAL '1 day',
+				'DD.MM.YYYY'
+			) AS end_date
+		FROM 
+			company c
+		LEFT JOIN 
+			company_repetion cr ON c.id = cr.company_id
+		WHERE c.company_type_id = $3
+		GROUP BY 
+			c.id,                                
+			c.cmp_desc ->> 'name',
+			c.cmp_desc ->> 'desc',
+			(c.cmp_desc ->> 'startTime')::TIMESTAMP,
+			(c.cmp_desc ->> 'durationDay')::INTEGER
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := s.db.Query(query, pageSize, offset, cmpType)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +335,6 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*type
 		if err != nil {
 			return nil, err
 		}
-
 		companies = append(companies, cmp)
 	}
 
@@ -342,6 +346,7 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*type
 		Data:        companies,
 	}, nil
 }
+
 
 func (s *PgCompanyStore) SetCompanyType(c types.Company) (*int, error) {
 	var compId int
@@ -465,18 +470,18 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 	return nil
 }
 
-func (s *PgCompanyStore) GetCompanyByID(comID int) ([]*types.CompanyDetailResp, error) {
+func (s *PgCompanyStore) GetCompanyByID(cmpID int) ([]*types.CompanyDetailResp, error) {
 	query := `
 		select cr.id,
-		cr.efficiency,
-		cr.sub_amount,
-		TO_CHAR(cr.start_date::TIMESTAMP, 'dd.mm.yyyy')
-		--TO_CHAR(cr.end_date::TIMESTAMP, 'dd.mm.yyyy')
+			cr.efficiency,
+			cr.sub_amount,
+			TO_CHAR(cr.start_date::TIMESTAMP, 'dd.mm.yyyy')
+			--TO_CHAR(cr.end_date::TIMESTAMP, 'dd.mm.yyyy')
 		from company_repetion cr
 		where cr.company_id = $1
 	`
 
-	rows, err := s.db.Query(query, comID)
+	rows, err := s.db.Query(query, cmpID)
 	if err != nil {
 		return nil, err
 	}

@@ -126,7 +126,7 @@ func main() {
 
 	router.HandleFunc("/company-type", companyHandler.HandleGetCompanyTypes)
 	router.HandleFunc("/company", companyHandler.HandleCreateCompany).Methods("POST")
-	router.HandleFunc("/companies/{type_id:[0-9]*}", companyHandler.HandleGetCompany).Methods("GET")
+	router.HandleFunc("/companies/{type_id:[0-9]*}", companyHandler.HandleGetCompanies).Methods("GET")
 
 	router.HandleFunc("/company/{id:[0-9]+}", companyHandler.HandleGetCompanyDetail)
 
