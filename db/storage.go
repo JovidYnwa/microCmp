@@ -129,7 +129,6 @@ func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 }
 
 func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedResponse, error) {
-	// First, verify your count query matches your main query conditions
 	var totalCount int
 	countQuery := `
         SELECT COUNT(DISTINCT ct.id) 
@@ -142,11 +141,9 @@ func (s *PgCompanyStore) GetCompanyType(page, pageSize int) (*types.PaginatedRes
 		return nil, fmt.Errorf("count query error: %w", err)
 	}
 
-	// Calculate pagination
 	totalPages := (totalCount + pageSize - 1) / pageSize
 	offset := (page - 1) * pageSize
 
-	// Main query remains the same
 	query := `
         SELECT 
             ct.id,
@@ -283,11 +280,9 @@ func (s *PgCompanyStore) GetCompanies(page, pageSize int, cmpType string) (*type
 		return nil, err
 	}
 
-	// Calculate pagination values
 	totalPages := (totalCount + pageSize - 1) / pageSize
 	offset := (page - 1) * pageSize
 
-	// Query for paginated results
 	query := `
 		SELECT 
 			c.id,
@@ -392,20 +387,17 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 			action_data
         ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::json)` // Note the ::jsonb type cast
 
-	// Create a map for the filter data
 	cmpData := map[string]interface{}{
 		"name":     cmp.Company.CmpName,
 		"desc":     cmp.Company.CmpDesc,
 		"naviUser": cmp.Company.NaviUser, //Take form token letter on
 	}
 
-	// Marshal the map to JSON
 	cmpJsonData, err := json.Marshal(cmpData)
 	if err != nil {
 		return fmt.Errorf("error marshaling filter data: %v", err)
 	}
 
-	// Create a map for the filter data
 	filterData := map[string]interface{}{
 		"phoneType":        cmp.CompanyInfo.PhoneType,
 		"trpl":             cmp.CompanyInfo.Trpl,
@@ -420,20 +412,17 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 		"usingWheel":       cmp.CompanyInfo.WheelUsage,
 	}
 
-	// Marshal the map to JSON
 	filterJsonData, err := json.Marshal(filterData)
 	if err != nil {
 		return fmt.Errorf("error marshaling filter data: %v", err)
 	}
 
-	// Create a map for the filter data
 	sendSmsData := map[string]interface{}{
 		"smsText":      cmp.SendSms.SmsText,
 		"smsDay":       cmp.SendSms.SmsDay,
 		"smsTextRemid": cmp.SendSms.SmsTextRemid,
 	}
 
-	// Marshal the map to JSON
 	sendSmsJsonData, err := json.Marshal(sendSmsData)
 	if err != nil {
 		return fmt.Errorf("error marshaling sendsms data: %v", err)
@@ -445,13 +434,11 @@ func (s *PgCompanyStore) SetCompany(cmp *types.CreateCompanyReq) error {
 		"prize":   cmp.Action.Prize,
 	}
 
-	// Marshal the map to JSON
 	actionSmsJsonData, err := json.Marshal(actionSmsData)
 	if err != nil {
 		return fmt.Errorf("error marshaling action data: %v", err)
 	}
 
-	// Use sql.RawBytes to pass JSON data
 	_, err = s.db.Exec(
 		query,
 		cmp.CompanyType,

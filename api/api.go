@@ -321,7 +321,6 @@ func validateCreateCompanyRequest(req *types.CreateCompanyReq) error {
 	if req.Company.CmpName == "" {
 		return fmt.Errorf("company name is required")
 	}
-
 	return nil
 }
 
@@ -359,7 +358,6 @@ func (h *CompanyHandler) HandleGetCompanyDetail(w http.ResponseWriter, r *http.R
 		WriteJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	WriteJSON(w, http.StatusOK, s)
 }
 

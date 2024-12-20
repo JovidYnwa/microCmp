@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	//TODO check pagination, sending notification function
+	//TODO sending notification function
 
 	// load .env file
 	err := godotenv.Load(".env")
